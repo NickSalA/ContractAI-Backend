@@ -23,7 +23,10 @@ build-backend = "uv_build"
 
 [tool.ruff]
 line-length = 120
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "D", "PL", "B"]
+ignore = ["D104"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
