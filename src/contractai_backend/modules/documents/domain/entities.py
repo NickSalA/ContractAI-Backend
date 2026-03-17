@@ -2,6 +2,8 @@
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
+from src.contractai_backend.shared.config import settings
+
 from .value_objs import DocumentPeriod, DocumentState, DocumentType, Money
 
 
@@ -14,7 +16,7 @@ class DocumentChunk:
     client: str
     content: str
     upload_at: datetime = field(default_factory=datetime.now(datetime.timezone.utc))
-    
+
 @dataclass
 class Document:
     """Entity that represents a document with its metadata."""
@@ -30,7 +32,11 @@ class Document:
     def is_expired(self) -> bool:
         """Determines if the document is expired based on the end date."""
         return date.today() > self.period.end
-    
+
     def can_be_renewed(self) -> bool:
         """Determines if the document can be renewed based on its state and expiration."""
         return self.state == DocumentState.ACTIVE and self.is_expired()
+
+    def is_pending(self) -> bool:
+        """Determines if the document is pending based on the end date."""
+        return self.state == DocumentState.ACTIVE and not self.is_expired() and (self.period.end - date.today()).days <= settings.PENDING_DAYS

@@ -25,10 +25,10 @@ requires = ["uv_build>=0.10.9,<0.11.0"]
 build-backend = "uv_build"
 
 [tool.ruff]
-line-length = 120
+line-length = 150
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "D", "PL", "B"]
+select = ["E", "F", "I", "N", "D", "PL", "B", "W"]
 ignore = ["D104", "D107"]
 
 [tool.ruff.lint.pydocstyle]

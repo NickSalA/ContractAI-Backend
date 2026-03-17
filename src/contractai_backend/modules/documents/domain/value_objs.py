@@ -19,7 +19,7 @@ class Money(str, Enum):
     """Value object that represents a monetary value."""
     amount: float
     currency: str = "PEN"
-    
+
     def __post_init__(self):
         """Validates that the amount is non-negative."""
         if self.amount < 0:

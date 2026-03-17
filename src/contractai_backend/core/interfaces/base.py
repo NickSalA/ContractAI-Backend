@@ -28,7 +28,7 @@ class IBaseRepository(ABC, Generic[T]):
     async def delete(self, id: ID) -> None:
         """Deletes an entity by its ID."""
         pass
-    
+
     @abstractmethod
     async def update(self, id: ID, entity: T) -> Optional[T]:
         """Updates an entity by its ID."""

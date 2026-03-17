@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     ALGORITHM: str | None = None
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=1440)
 
+    PENDING_DAYS: int = Field(default=30)
+
     GEMINI_MODEL_NAME: str = Field(default="gemini-2.5-flash")
     GEMINI_MINI_MODEL_NAME: str = Field(default="gemini-2.5-flash-lite")
     GEMINI_API_KEY: str = Field(default="your-gemini-api-key")
@@ -42,7 +44,7 @@ class Settings(BaseSettings):
     DATABASE_USER: str = Field(default=...)
     DATABASE_HOST: str = Field(default=...)
     DATABASE_PORT: int = Field(default=5432)
-    
+
     @property
     def DATABASE_URL(self) -> str:  # noqa: N802
         """Recupera la URL de la base de datos desde Key Vault o variable de entorno."""

@@ -14,3 +14,8 @@ class IDocumentRepository(IBaseRepository[Document]):
     async def get_by_client_name(self, client_name: str) -> List[Document]:
         """Lists all documents for a given client."""
         pass
+
+    @abstractmethod
+    async def get_active_documents(self) -> List[Document]:
+        """Lists all active documents."""
+        pass
