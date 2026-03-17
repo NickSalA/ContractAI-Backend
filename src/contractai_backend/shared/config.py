@@ -1,0 +1,70 @@
+"""Configuration settings for the application."""
+from pydantic import Field, ValidationError
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Configuration settings for the application."""
+    PROJECT_NAME: str = "CONTRACT AI"
+    LOG_LEVEL: str = "INFO"
+    GLOBAL_PREFIX: str = "/api/v1"
+    CORS_ORIGINS: list[str] = ["http://localhost:8000", "http://localhost:3000", "http://localhost:9002"]
+    DEBUG: bool = Field(default=False)
+
+    SECRET_KEY: str = Field(default="your-secret-key")
+    ALGORITHM: str | None = None
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=1440)
+
+    GEMINI_MODEL_NAME: str = Field(default="gemini-2.5-flash")
+    GEMINI_MINI_MODEL_NAME: str = Field(default="gemini-2.5-flash-lite")
+    GEMINI_API_KEY: str = Field(default="your-gemini-api-key")
+    # MODEL_SECOND_API_KEY: str = Field(default="your-second-model-api-key")
+    MODEL_TEMPERATURE: float = Field(default=0.7)
+
+    OPENAI_EMBEDDING_MODEL_NAME: str = Field(default="text-embedding-3-small")
+    OPENAI_API_KEY: str = Field(default=...)
+
+    # BETTER_STACK_TOKEN: str = Field(default=...)
+    # BETTER_STACK_HOST: str = Field(default=...)
+
+    QDRANT_API_KEY: str = Field(default=...)
+    QDRANT_URL: str = Field(default=...)
+    INDEX_NAME: str = Field(default="contracts_index")
+
+    LLAMA_PARSE_API_KEY: str = Field(default=...)
+
+    ALLOWED_FILE_TYPES: list[str] = Field(default=["application/pdf", "text/plain"])
+    MAX_FILE_SIZE: int = Field(default=5)
+    MAX_NUM_PAGES: int = Field(default=10)
+
+    DATABASE_NAME: str = Field(default="postgres")
+    DATABASE_PASSWORD: str = Field(default=...)
+    DATABASE_USER: str = Field(default=...)
+    DATABASE_HOST: str = Field(default=...)
+    DATABASE_PORT: int = Field(default=5432)
+    
+    @property
+    def DATABASE_URL(self) -> str:  # noqa: N802
+        """Recupera la URL de la base de datos desde Key Vault o variable de entorno."""
+        if not self.DATABASE_HOST:
+            return "sqlite:///./test.db"
+        return f"postgresql+asyncpg://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
+
+    @property
+    def CONN_STRING(self) -> str:  # noqa: N802
+        """Recupera la cadena de conexión para el checkpointer."""
+        if not self.DATABASE_HOST:
+            return "sqlite:///./test.db"
+        return f"postgresql://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}?sslmode=require"
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore"
+    )
+
+try:
+    settings = Settings()
+except ValidationError as e:
+    raise RuntimeError(f"Error de validación en la configuración: {e}") from e

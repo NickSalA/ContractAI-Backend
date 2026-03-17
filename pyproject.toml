@@ -12,6 +12,9 @@ dependencies = [
     "pydantic>=2.12.5",
     "sqlalchemy>=2.0.48",
     "uvicorn>=0.42.0",
+    "azure-keyvault-secrets",
+    "azure-identity",
+    "pydantic-settings"
 ]
 
 [project.scripts]
@@ -26,7 +29,7 @@ line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "D", "PL", "B"]
-ignore = ["D104"]
+ignore = ["D104", "D107"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -36,7 +39,7 @@ max-args = 5
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.0.1"  # Pon aquí tu versión actual
+version = "0.1.0"  # Pon aquí tu versión actual
 tag_format = "v$version"
 version_files = [
     "pyproject.toml:version"
