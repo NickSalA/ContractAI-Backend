@@ -33,3 +33,11 @@ convention = "google"
 
 [tool.ruff.lint.pylint]
 max-args = 5
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.0.1"  # Pon aquí tu versión actual
+tag_format = "v$version"
+version_files = [
+    "pyproject.toml:version"
+]
