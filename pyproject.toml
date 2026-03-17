@@ -39,7 +39,7 @@ max-args = 5
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.0.0"  # Pon aquí tu versión actual
+version = "0.1.0"  # Pon aquí tu versión actual
 tag_format = "v$version"
 version_files = [
     "pyproject.toml:version"
