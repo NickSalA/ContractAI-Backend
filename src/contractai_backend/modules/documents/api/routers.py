@@ -1,9 +1,11 @@
 """Module containing API routers for document-related endpoints."""
 
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends, Query, UploadFile
+from sqlalchemy import or_
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from contractai_backend.modules.documents.domain import DocumentState, DocumentType
 from contractai_backend.modules.documents.infrastructure.model import DocumentTable
 from contractai_backend.shared.database.database import get_session
 
@@ -15,12 +17,25 @@ router = APIRouter()
 async def create_document(file: UploadFile, document: CreateDocumentRequest) -> DocumentResponse:
     """Endpoint to create a new document."""
     # Implementation goes here
-    raise NotImplementedError
+    pass
 
 @router.get("/", response_model=list[DocumentResponse])
-async def list_documents(session: AsyncSession = Depends(get_session)) -> list[DocumentResponse]:
+async def list_documents(
+    session: AsyncSession = Depends(get_session),
+    search: str | None = Query(default=None),
+    state: DocumentState | None = Query(default=None),
+    document_type: DocumentType | None = Query(default=None, alias="type"),
+) -> list[DocumentResponse]:
     """Endpoint to list documents with optional filters."""
     query = select(DocumentTable)
+    if search:
+        pattern = f"%{search.strip()}%"
+        query = query.where(or_(DocumentTable.name.ilike(pattern), DocumentTable.client.ilike(pattern)))
+    if state:
+        query = query.where(DocumentTable.state == state)
+    if document_type:
+        query = query.where(DocumentTable.type == document_type)
+    query = query.order_by(DocumentTable.id.asc())
     result = await session.exec(query)
     documents = result.all()
     return [
@@ -43,13 +58,13 @@ async def list_documents(session: AsyncSession = Depends(get_session)) -> list[D
 async def get_document(document_id: int) -> DocumentResponse:
     """Endpoint to retrieve a document by its ID."""
     # Implementation goes here
-    raise NotImplementedError
+    pass
 
 @router.patch("/{document_id}", response_model=DocumentResponse)
 async def update_document(document_id: int, document: UpdateDocumentRequest) -> DocumentResponse:
     """Endpoint to update an existing document."""
     # Implementation goes here
-    raise NotImplementedError
+    pass
 
 @router.delete("/{document_id}")
 async def delete_document(document_id: int) -> None:

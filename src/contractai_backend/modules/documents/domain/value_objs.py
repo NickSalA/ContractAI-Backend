@@ -30,7 +30,7 @@ class DocumentType(str, Enum):
     """Enum-like class to represent document types."""
     LICENSES = "LICENCIAS"
     SERVICES = "SERVICIOS"
-    SOPORTE = "SOPORTE"
+    SUPPORT = "SOPORTE"
 
 class DocumentState(str, Enum):
     """Enum-like class to represent document states."""
