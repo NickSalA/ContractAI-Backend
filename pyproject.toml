@@ -16,6 +16,9 @@ dependencies = [
     "azure-identity",
     "pydantic-settings",
     "langchain-google-genai>=4.2.1",
+    "sqlmodel",
+    "asyncpg",
+    "sqlalchemy.ext"
 ]
 
 [project.scripts]
@@ -30,7 +33,7 @@ line-length = 150
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "D", "PL", "B", "W"]
-ignore = ["D104", "D107"]
+ignore = ["D104", "D107", "D101", "D417"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

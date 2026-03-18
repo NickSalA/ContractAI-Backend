@@ -15,7 +15,8 @@ class DocumentPeriod:
         if self.start > self.end:
             raise ValueError("La fecha de inicio no puede ser posterior a la fecha de fin.")
 
-class Money(str, Enum):
+@dataclass(frozen=True)
+class Money:
     """Value object that represents a monetary value."""
     amount: float
     currency: str = "PEN"

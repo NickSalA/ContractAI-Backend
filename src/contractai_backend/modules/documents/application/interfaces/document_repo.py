@@ -3,8 +3,8 @@
 from abc import abstractmethod
 from typing import List
 
-from src.contractai_backend.core.interfaces.base import IBaseRepository
-from src.contractai_backend.modules.documents.domain.entities import Document
+from contractai_backend.core.interfaces.base import IBaseRepository
+from contractai_backend.modules.documents.domain.entities import Document
 
 
 class IDocumentRepository(IBaseRepository[Document]):

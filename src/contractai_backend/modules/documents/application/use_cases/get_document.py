@@ -2,8 +2,8 @@
 
 from typing import List, Optional
 
-from src.contractai_backend.modules.documents.application.interfaces.document_repo import IDocumentRepository
-from src.contractai_backend.modules.documents.domain import Document
+from contractai_backend.modules.documents.application.interfaces.document_repo import IDocumentRepository
+from contractai_backend.modules.documents.domain import Document
 
 
 class GetDocumentUseCase:
