@@ -18,7 +18,10 @@ dependencies = [
     "langchain-google-genai>=4.2.1",
     "sqlmodel",
     "asyncpg",
-    "sqlalchemy.ext"
+    "sqlalchemy.ext",
+    "llama-parse",
+    "qdrant-client",
+    "llama-index-vector-stores-qdrant"
 ]
 
 [project.scripts]

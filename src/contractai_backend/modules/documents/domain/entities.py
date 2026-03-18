@@ -1,23 +1,12 @@
 """Domain entities for document management."""
 
-from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from dataclasses import dataclass
+from datetime import date
 
 from contractai_backend.shared.config import settings
 
 from .value_objs import DocumentPeriod, DocumentState, DocumentType, Money
 
-
-@dataclass
-class DocumentChunk:
-    """Entity that represents a chunk to be stored in the vector database."""
-    id: int
-    document_id: int
-    content: str
-    chunk_index: int
-    filename: str | None = None
-    client: str | None = None
-    uploaded_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 @dataclass
 class Document:
