@@ -39,11 +39,11 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE: int = Field(default=5)
     MAX_NUM_PAGES: int = Field(default=10)
 
-    DATABASE_NAME: str = Field(default="postgres")
-    DATABASE_PASSWORD: str = Field(default=...)
-    DATABASE_USER: str = Field(default=...)
-    DATABASE_HOST: str = Field(default=...)
-    DATABASE_PORT: int = Field(default=5432)
+    DATABASE_NAME: str | None = Field(default="postgres")
+    DATABASE_PASSWORD: str | None = Field(default=...)
+    DATABASE_USER: str | None = Field(default=...)
+    DATABASE_HOST: str | None = Field(default=...)
+    DATABASE_PORT: int | None = Field(default=5432)
 
     @property
     def DATABASE_URL(self) -> str:  # noqa: N802
