@@ -1,12 +1,14 @@
 """Factory module for creating and configuring the FastAPI application."""
 
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
+from fastapi import FastAPI
+
+from src.contractai_backend.modules.chatbot.api.routers import chat_router, conversation_router
+from src.contractai_backend.modules.documents.api.routers import router as documents_router
+from src.contractai_backend.modules.users.api.routers import auth_router, users_router
 from src.contractai_backend.shared.config import settings
 
-from src.contractai_backend.modules.documents.api.routers import router as documents_router
-from src.contractai_backend.modules.users.api.routers import users_router, auth_router
 
 def create() -> FastAPI:
     """Creates and configures the FastAPI application."""
@@ -23,3 +25,5 @@ def create() -> FastAPI:
     app.include_router(documents_router, prefix="/documents", tags=["documents"])
     app.include_router(auth_router, prefix="/login", tags=["Autenticación"])
     app.include_router(users_router, prefix="/user", tags=["Usuarios"])
+    app.include_router(chat_router, prefix="/chatbot", tags=["Chatbot"])
+    app.include_router(conversation_router, prefix="/conversations", tags=["Conversaciones"])
