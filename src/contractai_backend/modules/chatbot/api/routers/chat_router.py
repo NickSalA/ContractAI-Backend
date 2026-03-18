@@ -4,7 +4,7 @@ from contractai_backend.modules.chatbot.application.use_cases.process_message im
 from contractai_backend.modules.chatbot.infrastructure.agent.adapter import LangGraphGeminiAdapter
 from contractai_backend.modules.chatbot.application.interfaces.llm_provider import ILLMProvider
 
-router = APIRouter(tags=["Chatbot"])
+router = APIRouter()
 
 langgraph_adapter_instance = LangGraphGeminiAdapter()
 
