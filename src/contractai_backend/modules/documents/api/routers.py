@@ -1,13 +1,13 @@
 """Module containing API routers for document-related endpoints."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile
 
 from .schemas import CreateDocumentRequest, DocumentResponse, UpdateDocumentRequest
 
 router = APIRouter()
 
 @router.post("/", response_model=DocumentResponse)
-async def create_document(document: CreateDocumentRequest) -> DocumentResponse:
+async def create_document(file: UploadFile, document: CreateDocumentRequest) -> DocumentResponse:
     """Endpoint to create a new document."""
     # Implementation goes here
     pass
