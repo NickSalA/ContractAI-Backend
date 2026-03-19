@@ -62,6 +62,12 @@ class LlamaIndexQdrantRepository(VectorRepository):
     async def add_vectors(self, index_name: str, document_id: int, chunks: list) -> None:
         """Ejecuta la ingesta de LlamaIndex hacia Qdrant."""
         await self._ensure_collection(index_name)
+
+        for chunk in chunks:
+            chunk.metadata["document_id"] = document_id
+            chunk.excluded_embed_metadata_keys = ["document_id"]
+            chunk.excluded_llm_metadata_keys = ["document_id"]
+
         await self.delete_vectors(index_name, document_id)
 
         vector_store = QdrantVectorStore(
