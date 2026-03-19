@@ -1,8 +1,9 @@
 """Module containing API routers for document-related endpoints."""
 
+import json
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
 
 from contractai_backend.modules.documents.application.services.document_service import DocumentService
 
@@ -13,16 +14,19 @@ router = APIRouter()
 
 DocumentServiceDep = Annotated[DocumentService, Depends(get_document_service)]
 
+# TODO: Orquestar de mejor forma el Schema de document.
 @router.post("/", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
-async def create_document(file: UploadFile, document: CreateDocumentRequest, service: DocumentServiceDep) -> DocumentResponse:
+async def create_document(file: UploadFile, service: DocumentServiceDep, document: str = Form(...)) -> DocumentResponse:
     """Endpoint to create a new document."""
     try:
+        doc_data = json.loads(document)
+        doc_obj = CreateDocumentRequest(**doc_data)
         file_content = await file.read()
 
         saved_document = await service.create_document(
             file=file_content,
             filename=file.filename,
-            data=document
+            data=doc_obj
         )
         return saved_document
     except ValueError as ve:

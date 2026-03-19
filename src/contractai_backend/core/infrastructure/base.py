@@ -29,7 +29,7 @@ class PostgresBaseRepository(BaseRepository[T]):
     async def save(self, entity: T) -> T:
         """Crea un nuevo registro en la base de datos a partir de la entidad. Devuelve la entidad creada con su ID asignado."""
         obj = self.model(**entity.dict(exclude_unset=True))
-        await self.session.add(obj)
+        self.session.add(obj)
         await self.session.commit()
         await self.session.refresh(obj)
         return obj

@@ -30,7 +30,7 @@ class LlamaIndexQdrantRepository(VectorRepository):
             await self.async_client.recreate_collection(
                 collection_name=index,
                 vectors_config=models.VectorParams(
-                size=768,
+                size=1536,
                 distance=models.Distance.COSINE
                 )
             )

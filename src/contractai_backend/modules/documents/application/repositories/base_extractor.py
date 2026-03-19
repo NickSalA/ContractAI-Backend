@@ -6,6 +6,6 @@ from abc import ABC, abstractmethod
 class DocumentExtractor(ABC):
 
     @abstractmethod
-    def extract(self, file: bytes, filename: str) -> list:
+    async def extract(self, file: bytes, filename: str) -> list:
         """Extrae el texto de un documento dado su contenido en bytes y su nombre de archivo."""
         pass
