@@ -9,7 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .core.exceptions.base import AppError
 
-# from .modules.chatbot.api.routers import chat_router, conversation_router
+from .modules.chatbot.api.routers import chat_router, conversation_router
 from .modules.documents.api.routers import router as documents_router
 from .modules.documents.infrastructure import configure_embedding
 from .modules.users.api.routers import auth_router, users_router
@@ -33,8 +33,8 @@ def create() -> FastAPI:
     app.include_router(documents_router, prefix="/documents", tags=["documents"])
     app.include_router(auth_router, prefix="/login", tags=["Autenticación"])
     app.include_router(users_router, prefix="/user", tags=["Usuarios"])
-    # app.include_router(chat_router, prefix="/chatbot", tags=["Chatbot"])
-    # app.include_router(conversation_router, prefix="/conversations", tags=["Conversaciones"])
+    app.include_router(chat_router, prefix="/chatbot", tags=["Chatbot"])
+    app.include_router(conversation_router, prefix="/conversations", tags=["Conversaciones"])
 
     app.add_middleware(
         CORSMiddleware,

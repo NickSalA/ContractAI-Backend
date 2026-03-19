@@ -6,13 +6,9 @@ class ProcessMessageUseCase:
     def __init__(self, llm_provider: ILLMProvider):
         self.llm_provider = llm_provider
 
-    def execute(self, request: ChatRequest) -> ChatResponse:
-        response_text, thread_id = self.llm_provider.invoke(
+    async def execute(self, request: ChatRequest) -> ChatResponse: # Cambiado a async
+        response_text, thread_id = await self.llm_provider.invoke( # Await aquí
             message=request.message,
             thread_id=request.thread_id
         )
-
-        return ChatResponse(
-            response=response_text,
-            thread_id=thread_id
-        )
+        return ChatResponse(response=response_text, thread_id=thread_id)
