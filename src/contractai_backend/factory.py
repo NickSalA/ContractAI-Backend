@@ -3,13 +3,19 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-# from contractai_backend.modules.chatbot.api.routers import chat_router, conversation_router
-from contractai_backend.modules.documents.api.routers import router as documents_router
-from contractai_backend.modules.documents.infrastructure.voyage_embedding import configure_embedding
-from contractai_backend.modules.users.api.routers import auth_router, users_router
-from contractai_backend.shared.config import settings
+from .core.exceptions.base import AppError
+
+# from .modules.chatbot.api.routers import chat_router, conversation_router
+from .modules.documents.api.routers import router as documents_router
+from .modules.documents.infrastructure import configure_embedding
+from .modules.users.api.routers import auth_router, users_router
+from .shared.api.error_handlers import app_error_handler, global_exception_handler, http_exception_handler, validation_exception_handler
+from .shared.api.middlewares import LoguruMiddleware
+from .shared.config import settings
 
 
 def create() -> FastAPI:
@@ -36,6 +42,13 @@ def create() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    app.add_middleware(LoguruMiddleware)
+
+    app.add_exception_handler(AppError, app_error_handler)
+    app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(Exception, global_exception_handler)
 
     @app.get("/")
     def home():
