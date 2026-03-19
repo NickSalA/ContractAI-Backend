@@ -1,7 +1,7 @@
 """"LlamaParse-based document parser implementation."""
 
-import os
 import tempfile
+from pathlib import Path
 
 from llama_parse import LlamaParse, ResultType
 
@@ -21,7 +21,8 @@ class LlamaParseExtractor(DocumentExtractor):
         )
     async def extract(self, file: bytes, filename: str) -> list:
         """Extracts structured data from a document using LlamaParse."""
-        extension = os.path.splitext(filename)[1].lower()
+        extension = Path(filename).suffix.lower()
+        temp_path = None
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=extension) as temp_file:
             temp_file.write(file)
@@ -29,11 +30,13 @@ class LlamaParseExtractor(DocumentExtractor):
             temp_path = temp_file.name
         try:
             documents = await self.parser.aload_data(file_path=temp_path)
+
+            for doc in documents:
+                doc.metadata["filename"] = filename
+            return documents
+
+        except Exception as e:
+            raise RuntimeError(f"Error extracting data with LlamaParse: {e}") from e
         finally:
-            # Eliminar manualmente después de usarlo
-            os.unlink(temp_path)
-
-        for doc in documents:
-            doc.metadata["filename"] = filename
-
-        return documents
+            if temp_path and Path(temp_path).exists():
+                Path(temp_path).unlink()
