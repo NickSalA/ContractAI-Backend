@@ -23,11 +23,15 @@ class LlamaParseExtractor(DocumentExtractor):
         """Extracts structured data from a document using LlamaParse."""
         extension = os.path.splitext(filename)[1].lower()
 
-        with tempfile.NamedTemporaryFile(delete=True, suffix=extension) as temp_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=extension) as temp_file:
             temp_file.write(file)
             temp_file.flush()
-
-            documents = await self.parser.aload_data(file_path=temp_file.name)
+            temp_path = temp_file.name
+        try:
+            documents = await self.parser.aload_data(file_path=temp_path)
+        finally:
+            # Eliminar manualmente después de usarlo
+            os.unlink(temp_path)
 
         for doc in documents:
             doc.metadata["filename"] = filename
