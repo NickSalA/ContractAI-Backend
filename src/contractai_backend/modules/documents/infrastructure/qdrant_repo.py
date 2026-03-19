@@ -7,7 +7,7 @@ from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import AsyncQdrantClient, QdrantClient
 from qdrant_client.http import models
 
-from contractai_backend.modules.documents.application.repositories.base_vectorial import VectorRepository
+from ..application.repositories import VectorRepository
 
 
 class LlamaIndexQdrantRepository(VectorRepository):

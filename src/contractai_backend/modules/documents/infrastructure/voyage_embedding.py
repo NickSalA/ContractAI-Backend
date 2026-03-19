@@ -3,7 +3,7 @@
 from llama_index.core import Settings
 from llama_index.embeddings.openai import OpenAIEmbedding
 
-from contractai_backend.shared.config import settings
+from ....shared.config import settings
 
 
 # TODO: Cambiar en el futuro al modelo de embedding de Voyage AI una vez que esté disponible públicamente.

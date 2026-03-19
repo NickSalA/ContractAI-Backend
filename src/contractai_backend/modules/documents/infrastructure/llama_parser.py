@@ -5,8 +5,8 @@ import tempfile
 
 from llama_parse import LlamaParse, ResultType
 
-from contractai_backend.modules.documents.application.repositories.base_extractor import DocumentExtractor
-from contractai_backend.shared.config import settings
+from ....shared.config import settings
+from ..application.repositories import DocumentExtractor
 
 
 class LlamaParseExtractor(DocumentExtractor):

@@ -4,8 +4,8 @@ from .qdrant_repo import LlamaIndexQdrantRepository
 from .voyage_embedding import configure_embedding
 
 __all__ = [
+    "LlamaIndexQdrantRepository",
     "LlamaParseExtractor",
     "SQLModelDocumentRepository",
-    "LlamaIndexQdrantRepository",
     "configure_embedding"
 ]

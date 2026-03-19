@@ -6,9 +6,9 @@ from fastapi import Depends
 from qdrant_client import AsyncQdrantClient, QdrantClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from contractai_backend.modules.documents.application.services.document_service import DocumentService
-from contractai_backend.modules.documents.infrastructure import LlamaIndexQdrantRepository, LlamaParseExtractor, SQLModelDocumentRepository
-from contractai_backend.shared.database import get_aclient, get_client, get_session
+from ....shared.database import get_aclient, get_client, get_session
+from ..application.services import DocumentService
+from ..infrastructure import LlamaIndexQdrantRepository, LlamaParseExtractor, SQLModelDocumentRepository
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 AsyncQdrantDep = Annotated[AsyncQdrantClient, Depends(get_aclient)]

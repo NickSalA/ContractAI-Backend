@@ -1,15 +1,15 @@
 """BaseRepository: Clase genérica para manejar operaciones CRUD con SQLModel y AsyncSession."""
-from typing import Any, Sequence, Type, TypeVar
+from collections.abc import Sequence
+from typing import Any
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ..application.base import BaseRepository
 
-T = TypeVar("T")
 
-class PostgresBaseRepository(BaseRepository[T]):
-    def __init__(self, session: AsyncSession, model: Type[T]):
+class PostgresBaseRepository[T](BaseRepository[T]):
+    def __init__(self, session: AsyncSession, model: type[T]):
         """Receives the SQLModel table class and the database session.
 
         Args:
@@ -34,7 +34,7 @@ class PostgresBaseRepository(BaseRepository[T]):
         await self.session.refresh(obj)
         return obj
 
-    async def get_all(self, filters: dict[str, Any] = None) -> Sequence[T]:
+    async def get_all(self, filters: dict[str, Any] | None = None) -> Sequence[T]:
         """Lista entidades, opcionalmente filtrando por campos específicos."""
         query = select(self.model)
         if filters:

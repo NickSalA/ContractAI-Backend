@@ -37,7 +37,7 @@ build-backend = "uv_build"
 line-length = 150
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "D", "PL", "B", "W"]
+select = ["E", "F", "I", "N", "D", "PL", "B", "W", "ARG", "RUF", "UP"]
 ignore = ["D104", "D107", "D101", "D417"]
 
 [tool.ruff.lint.pydocstyle]

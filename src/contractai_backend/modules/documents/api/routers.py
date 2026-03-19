@@ -5,8 +5,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
 
-from contractai_backend.modules.documents.application.services.document_service import DocumentService
-
+from ..application.services import DocumentService
 from .dependencies import get_document_service
 from .schemas import CreateDocumentRequest, DocumentResponse, UpdateDocumentRequest
 

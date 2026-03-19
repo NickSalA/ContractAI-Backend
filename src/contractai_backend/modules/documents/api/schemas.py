@@ -4,7 +4,7 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from contractai_backend.modules.documents.domain.entities import DocumentState, DocumentType
+from ....modules.documents.domain import DocumentState, DocumentType
 
 
 class DocumentBase(BaseModel):

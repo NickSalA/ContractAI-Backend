@@ -1,8 +1,8 @@
 """DocumentService: Orchestrates document creation, data extraction, and storage in both relational and vector repositories."""
 
-from contractai_backend.modules.documents.api.schemas import CreateDocumentRequest
-from contractai_backend.modules.documents.application.repositories import DocumentExtractor, DocumentRepository, VectorRepository
-from contractai_backend.modules.documents.domain.entities import DocumentTable
+from ...api.schemas import CreateDocumentRequest
+from ...domain.entities import DocumentTable
+from ..repositories import DocumentExtractor, DocumentRepository, VectorRepository
 
 
 class DocumentService:
@@ -45,7 +45,7 @@ class DocumentService:
             )
         except Exception as e:
             await self.sql_repo.delete(save_doc.id)
-            raise RuntimeError(f"Failed to store document vectors: {str(e)}") from e
+            raise RuntimeError(f"Failed to store document vectors: {e!s}") from e
 
         return save_doc
 
@@ -62,6 +62,5 @@ class DocumentService:
         try:
             await self.vector_repo.delete_vectors(index_name=index_name, filename=filename)
         except Exception as e:
-            raise RuntimeError(f"Failed to delete document vectors: {str(e)}") from e
+            raise RuntimeError(f"Failed to delete document vectors: {e!s}") from e
         return await self.sql_repo.delete(id)
-

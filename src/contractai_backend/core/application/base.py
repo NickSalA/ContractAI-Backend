@@ -1,17 +1,16 @@
 """Base repository interface defining common CRUD operations for entities."""
+
 from abc import ABC, abstractmethod
-from typing import Generic, List, Optional, TypeVar
 
-T = TypeVar("T")
 
-class BaseRepository(Generic[T], ABC):
+class BaseRepository[T](ABC):
     @abstractmethod
-    async def get_by_id(self, id: int) -> Optional[T]:
+    async def get_by_id(self, id: int) -> T | None:
         """Retrieves an entity by its ID. Returns None if not found."""
         pass
 
     @abstractmethod
-    async def get_all(self) -> List[T]:
+    async def get_all(self) -> list[T]:
         """Returns a list of all entities."""
         pass
 
@@ -21,7 +20,7 @@ class BaseRepository(Generic[T], ABC):
         pass
 
     @abstractmethod
-    async def update(self, entity: T) -> Optional[T]:
+    async def update(self, entity: T) -> T | None:
         """Update an entity by its ID. Returns the updated entity or None if not found."""
         pass
 

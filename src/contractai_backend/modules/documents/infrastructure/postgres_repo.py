@@ -2,9 +2,9 @@
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from contractai_backend.core.infrastructure.base import PostgresBaseRepository
-from contractai_backend.modules.documents.application.repositories.base_relational import DocumentRepository
-from contractai_backend.modules.documents.domain import DocumentTable
+from ....core.infrastructure.base import PostgresBaseRepository
+from ..application.repositories import DocumentRepository
+from ..domain import DocumentTable
 
 
 class SQLModelDocumentRepository(PostgresBaseRepository[DocumentTable], DocumentRepository):
