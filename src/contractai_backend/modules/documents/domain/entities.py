@@ -1,34 +1,57 @@
-"""Domain entities for document management."""
-
-from dataclasses import dataclass
+"""Database model for documents with SQLModel."""
 from datetime import date
 
-from contractai_backend.shared.config import settings
+from sqlalchemy import Column, Integer
+from sqlalchemy.dialects.postgresql import ENUM
+from sqlmodel import Field, SQLModel, field_validator
 
-from .value_objs import DocumentPeriod, DocumentState, DocumentType, Money
+from .value_objs import DocumentState, DocumentType
 
+CURRENCY_CODE_LENGTH = 3
 
-@dataclass
-class Document:
-    """Document aggregate root with metadata and lifecycle behavior."""
+class DocumentTable(SQLModel, table=True):
+    __tablename__ = "documents"
 
-    id: int
-    name: str
-    client: str
-    type: DocumentType
-    period: DocumentPeriod
-    value: Money
-    licenses: int
-    state: DocumentState
+    id: int = Field(default=None, sa_column=Column(Integer, primary_key=True, autoincrement=True))
+    name: str = Field(sa_column=Column("name", nullable=False))
+    client: str = Field(sa_column=Column("client", nullable=False))
+    type: DocumentType = Field(sa_column=Column("type", ENUM(DocumentType, name="document_type"), nullable=False))
+    start: date = Field(sa_column=Column("start_date", nullable=False))
+    end: date = Field(sa_column=Column("end_date", nullable=False))
+    value: float = Field(sa_column=Column("value", nullable=False))
+    currency: str = Field(sa_column=Column("currency", nullable=False))
+    licenses: int = Field(sa_column=Column("licenses", type_=Integer, nullable=False))
+    state: DocumentState = Field(sa_column=Column("state", ENUM(DocumentState, name="document_state"), nullable=False))
 
-    def is_expired(self) -> bool:
-        """Return whether the document is already expired."""
-        return date.today() > self.period.end
+    @field_validator("end")
+    @classmethod
+    def validate_end_date(cls, end_date: date, values) -> date:
+        """Valida que la fecha de fin no sea anterior a la fecha de inicio."""
+        start_date = values.get("start")
+        if start_date and end_date < start_date:
+            raise ValueError("End date cannot be earlier than start date.")
+        return end_date
 
-    def can_be_renewed(self) -> bool:
-        """Return whether renewal is currently valid."""
-        return self.state == DocumentState.ACTIVE and self.is_expired()
+    @field_validator("value")
+    @classmethod
+    def validate_value(cls, value: float) -> float:
+        """Valida que el valor monetario sea positivo."""
+        if value < 0:
+            raise ValueError("Value must be a positive number.")
+        return value
 
-    def is_pending(self) -> bool:
-        """Return whether the document should be flagged as pending expiry."""
-        return self.state == DocumentState.ACTIVE and not self.is_expired() and (self.period.end - date.today()).days <= settings.PENDING_DAYS
+    @field_validator("licenses")
+    @classmethod
+    def validate_licenses(cls, licenses: int) -> int:
+        """Valida que el número de licencias sea un entero no negativo."""
+        if licenses < 0:
+            raise ValueError("Licenses must be a non-negative integer.")
+        return licenses
+
+    @field_validator("currency")
+    @classmethod
+    def validate_currency(cls, currency: str) -> str:
+        """Valida que el código de moneda sea un string de 3 caracteres."""
+        if len(currency) != CURRENCY_CODE_LENGTH:
+            raise ValueError(f"Currency code must be a {CURRENCY_CODE_LENGTH}-letter string.")
+        return currency.upper()

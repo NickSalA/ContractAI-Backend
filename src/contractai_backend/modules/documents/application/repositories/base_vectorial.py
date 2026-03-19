@@ -1,6 +1,6 @@
 """Contracts for vector indexing and retrieval."""
-from typing import Any
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class IVectorRepository(ABC):

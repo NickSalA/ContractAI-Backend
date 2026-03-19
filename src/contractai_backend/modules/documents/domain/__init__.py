@@ -1,9 +1,8 @@
-from .entities import Document, DocumentChunk
+from .entities import DocumentTable
 from .value_objs import DocumentPeriod, DocumentState, DocumentType, Money
 
 __all__ = [
-    "Document",
-    "DocumentChunk",
+    "DocumentTable",
     "DocumentPeriod",
     "DocumentState",
     "DocumentType",

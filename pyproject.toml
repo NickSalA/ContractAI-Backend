@@ -21,7 +21,8 @@ dependencies = [
     "sqlalchemy.ext",
     "llama-parse",
     "qdrant-client",
-    "llama-index-vector-stores-qdrant"
+    "llama-index-vector-stores-qdrant",
+    "llama-index-embeddings-openai"
 ]
 
 [project.scripts]
