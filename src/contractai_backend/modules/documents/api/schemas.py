@@ -25,14 +25,14 @@ class CreateDocumentRequest(DocumentBase):
 
 class UpdateDocumentRequest(DocumentBase):
     """Request schema for updating an existing document."""
-    name: str | None
-    client: str | None
-    type: DocumentType | None
-    start_date: date | None
-    end_date: date | None
-    value: float | None
-    currency: str | None
-    state: DocumentState | None
+    name: str | None = None
+    client: str | None = None
+    type: DocumentType | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    value: float | None = None
+    currency: str | None = None
+    state: DocumentState | None = None
 
 class DocumentResponse(DocumentBase):
     """Response schema for document data."""

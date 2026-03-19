@@ -3,7 +3,7 @@
 import json
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Response, UploadFile, status
 from pydantic import ValidationError
 
 from ..application.services import DocumentService
@@ -24,25 +24,33 @@ async def create_document(file: UploadFile, service: DocumentServiceDep, documen
     except (json.JSONDecodeError, ValidationError) as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
 
+    if file.filename is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must have a valid filename.")
+
     file_content = await file.read()
 
-    return await service.create_document(
+    saved_document = await service.create_document(
         file=file_content,
         filename=file.filename,
         data=doc_obj
     )
+
+    return DocumentResponse.model_validate(saved_document)
+
 
 @router.get("/", response_model=list[DocumentResponse])
 async def list_documents(
     service: DocumentServiceDep,
 ) -> list[DocumentResponse]:
     """Endpoint to list documents with optional filters."""
-    return await service.get_documents()
+    docs =  await service.get_documents()
+    return [DocumentResponse.model_validate(doc) for doc in docs]
 
 @router.get("/{document_id}", response_model=DocumentResponse)
 async def get_document(document_id: int, service: DocumentServiceDep) -> DocumentResponse:
     """Endpoint to retrieve a document by its ID."""
-    return await service.get_document(document_id)
+    doc = await service.get_document(document_id)
+    return DocumentResponse.model_validate(doc)
 
 #TODO: Implementar endpoint de actualización (PATCH)
 @router.patch("/{document_id}", response_model=DocumentResponse)
@@ -51,7 +59,7 @@ async def update_document(document_id: int, document: UpdateDocumentRequest, ser
     # Implementation goes here
     pass
 
-@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_document(document_id: int, service: DocumentServiceDep) -> None:
+@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+async def delete_document(document_id: int, filename: str, service: DocumentServiceDep) -> None:
     """Endpoint to delete a document by its ID."""
-    return await service.delete_document(document_id)
+    await service.delete_document(document_id, filename)

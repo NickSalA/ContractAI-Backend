@@ -6,9 +6,10 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ..application.base import BaseRepository
+from ..domain.base import BaseTable
 
 
-class PostgresBaseRepository[T](BaseRepository[T]):
+class PostgresBaseRepository[T: BaseTable](BaseRepository[T]):
     def __init__(self, session: AsyncSession, model: type[T]):
         """Receives the SQLModel table class and the database session.
 
@@ -28,7 +29,7 @@ class PostgresBaseRepository[T](BaseRepository[T]):
 
     async def save(self, entity: T) -> T:
         """Crea un nuevo registro en la base de datos a partir de la entidad. Devuelve la entidad creada con su ID asignado."""
-        obj = self.model(**entity.dict(exclude_unset=True))
+        obj = self.model.model_validate(entity)
         self.session.add(obj)
         await self.session.commit()
         await self.session.refresh(obj)

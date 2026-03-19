@@ -45,9 +45,9 @@ def create() -> FastAPI:
 
     app.add_middleware(LoguruMiddleware)
 
-    app.add_exception_handler(AppError, app_error_handler)
-    app.add_exception_handler(StarletteHTTPException, http_exception_handler)
-    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(AppError, app_error_handler) # pyright: ignore[reportArgumentType]
+    app.add_exception_handler(StarletteHTTPException, http_exception_handler) # pyright: ignore[reportArgumentType]
+    app.add_exception_handler(RequestValidationError, validation_exception_handler) # pyright: ignore[reportArgumentType]
     app.add_exception_handler(Exception, global_exception_handler)
 
     @app.get("/")

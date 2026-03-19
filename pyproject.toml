@@ -23,7 +23,8 @@ dependencies = [
     "qdrant-client",
     "llama-index-vector-stores-qdrant",
     "llama-index-embeddings-openai",
-    "python-multipart"
+    "python-multipart",
+    "logtail-python"
 ]
 
 [project.scripts]

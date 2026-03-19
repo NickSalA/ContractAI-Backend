@@ -4,6 +4,10 @@ from fastapi import FastAPI
 from loguru import logger
 from uvicorn import run
 
+from .shared.logger import setup
+
+setup()
+
 try:
     from contractai_backend.factory import create
     app: FastAPI = create()

@@ -1,19 +1,19 @@
 """Database model for documents with SQLModel."""
 from datetime import date
 
-from pydantic import field_validator
+from pydantic import ValidationInfo, field_validator
 from sqlalchemy import Column, Integer
 from sqlalchemy.dialects.postgresql import ENUM
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
 
+from ....core.domain.base import BaseTable
 from .value_objs import DocumentState, DocumentType
 
 CURRENCY_CODE_LENGTH = 3
 
-class DocumentTable(SQLModel, table=True):
-    __tablename__ = "documents"
+class DocumentTable(BaseTable, table=True):
+    __tablename__: str = "documents"
 
-    id: int = Field(default=None, sa_column=Column(Integer, primary_key=True, autoincrement=True))
     name: str = Field(sa_column=Column("name", nullable=False))
     client: str = Field(sa_column=Column("client", nullable=False))
     type: DocumentType = Field(sa_column=Column("type", ENUM(DocumentType, name="document_type"), nullable=False))
@@ -26,9 +26,9 @@ class DocumentTable(SQLModel, table=True):
 
     @field_validator("end_date")
     @classmethod
-    def validate_end_date(cls, end_date: date, values) -> date:
+    def validate_end_date(cls, end_date: date, info: ValidationInfo) -> date:
         """Valida que la fecha de fin no sea anterior a la fecha de inicio."""
-        start_date = values.get("start_date")
+        start_date = info.data.get("start_date")
         if start_date and end_date < start_date:
             raise ValueError("End date cannot be earlier than start date.")
         return end_date
