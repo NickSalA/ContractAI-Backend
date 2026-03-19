@@ -44,7 +44,7 @@ class LlamaIndexQdrantRepository(VectorRepository):
             if "already exists" not in str(e):
                 raise
 
-    async def delete_vectors(self, index_name: str, filename: str):
+    async def delete_vectors(self, index_name: str, id: int):
         """Elimina todos los vectores asociados a un documento específico en Qdrant, identificados por el nombre del archivo."""
         exists = await self.async_client.collection_exists(collection_name=index_name)
         if not exists:
@@ -54,15 +54,21 @@ class LlamaIndexQdrantRepository(VectorRepository):
             collection_name=index_name,
             points_selector=models.FilterSelector(
                 filter=models.Filter(
-                    must=[models.FieldCondition(key="filename", match=models.MatchValue(value=filename))]
+                    must=[models.FieldCondition(key="document_id", match=models.MatchValue(value=id))]
                 )
             )
         )
 
-    async def add_vectors(self, index_name: str, filename: str, chunks: list) -> None:
+    async def add_vectors(self, index_name: str, document_id: int, chunks: list) -> None:
         """Ejecuta la ingesta de LlamaIndex hacia Qdrant."""
         await self._ensure_collection(index_name)
-        await self.delete_vectors(index_name, filename)
+
+        for chunk in chunks:
+            chunk.metadata["document_id"] = document_id
+            chunk.excluded_embed_metadata_keys = ["document_id"]
+            chunk.excluded_llm_metadata_keys = ["document_id"]
+
+        await self.delete_vectors(index_name, document_id)
 
         vector_store = QdrantVectorStore(
             client=self.sync_client,

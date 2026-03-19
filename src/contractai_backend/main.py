@@ -17,4 +17,4 @@ except Exception as e:
 
 def main():
     """Función principal para ejecutar la aplicación FastAPI."""
-    run("contractai_backend.main:app", host="0.0.0.0", port=8000, reload=True, log_level="debug")
+    run("contractai_backend.main:app", host="0.0.0.0", port=8000, reload=True, log_config=None)
