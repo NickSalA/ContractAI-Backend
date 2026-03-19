@@ -1,7 +1,9 @@
-from .database_repo import IDocumentRepository
-from .base_vectorial import IVectorRepository
+from .base_extractor import DocumentExtractor
+from .base_relational import DocumentRepository
+from .base_vectorial import VectorRepository
 
 __all__ = [
-    "IDocumentRepository",
-    "IVectorRepository",
+    "DocumentRepository",
+    "VectorRepository",
+    "DocumentExtractor"
 ]

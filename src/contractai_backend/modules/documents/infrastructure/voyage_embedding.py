@@ -11,8 +11,8 @@ def configure_embedding() -> None:
     """Configura el modelo de embedding de Voyage AI globalmente para LlamaIndex."""
     try:
         Settings.embed_model = OpenAIEmbedding(
-            model_name=settings.VOYAGE_EMBEDDING_MODEL_NAME,
-            api_key=settings.VOYAGE_OPENAI_API_KEY,
+            model_name=settings.OPENAI_EMBEDDING_MODEL_NAME,
+            api_key=settings.OPENAI_API_KEY,
             embed_batch_size=50,
             dimensions=1536,
         )

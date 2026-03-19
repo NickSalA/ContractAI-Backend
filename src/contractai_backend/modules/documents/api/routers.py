@@ -1,73 +1,64 @@
 """Module containing API routers for document-related endpoints."""
 
-from fastapi import APIRouter, Depends, Query, UploadFile
-from sqlalchemy import or_
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from typing import Annotated
 
-from contractai_backend.modules.documents.domain import DocumentState, DocumentType
-from contractai_backend.modules.documents.infrastructure.model import DocumentTable
-from contractai_backend.shared.database.database import get_session
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
+from contractai_backend.modules.documents.application.services.document_service import DocumentService
+
+from .dependencies import get_document_service
 from .schemas import CreateDocumentRequest, DocumentResponse, UpdateDocumentRequest
 
 router = APIRouter()
 
-@router.post("/", response_model=DocumentResponse)
-async def create_document(file: UploadFile, document: CreateDocumentRequest) -> DocumentResponse:
+DocumentServiceDep = Annotated[DocumentService, Depends(get_document_service)]
+
+@router.post("/", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+async def create_document(file: UploadFile, document: CreateDocumentRequest, service: DocumentServiceDep) -> DocumentResponse:
     """Endpoint to create a new document."""
-    # Implementation goes here
-    pass
+    try:
+        file_content = await file.read()
+
+        saved_document = await service.create_document(
+            file=file_content,
+            filename=file.filename,
+            data=document
+        )
+        return saved_document
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve)) from ve
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 @router.get("/", response_model=list[DocumentResponse])
 async def list_documents(
-    session: AsyncSession = Depends(get_session),
-    search: str | None = Query(default=None),
-    state: DocumentState | None = Query(default=None),
-    document_type: DocumentType | None = Query(default=None, alias="type"),
+    service: DocumentServiceDep,
 ) -> list[DocumentResponse]:
     """Endpoint to list documents with optional filters."""
-    query = select(DocumentTable)
-    if search:
-        pattern = f"%{search.strip()}%"
-        query = query.where(or_(DocumentTable.name.ilike(pattern), DocumentTable.client.ilike(pattern)))
-    if state:
-        query = query.where(DocumentTable.state == state)
-    if document_type:
-        query = query.where(DocumentTable.type == document_type)
-    query = query.order_by(DocumentTable.id.asc())
-    result = await session.exec(query)
-    documents = result.all()
-    return [
-        DocumentResponse(
-            id=document.id,
-            name=document.name,
-            client=document.client,
-            type=document.type,
-            start_date=document.start,
-            end_date=document.end,
-            value=document.value,
-            currency=document.currency,
-            licenses=document.licenses,
-            state=document.state,
-        )
-        for document in documents
-    ]
+    return await service.get_documents()
 
 @router.get("/{document_id}", response_model=DocumentResponse)
-async def get_document(document_id: int) -> DocumentResponse:
+async def get_document(document_id: int, service: DocumentServiceDep) -> DocumentResponse:
     """Endpoint to retrieve a document by its ID."""
-    # Implementation goes here
-    pass
+    document = await service.get_document(document_id)
+    if not document:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    return document
 
+#TODO: Implementar endpoint de actualización (PATCH)
 @router.patch("/{document_id}", response_model=DocumentResponse)
-async def update_document(document_id: int, document: UpdateDocumentRequest) -> DocumentResponse:
+async def update_document(document_id: int, document: UpdateDocumentRequest, service: DocumentServiceDep) -> DocumentResponse:
     """Endpoint to update an existing document."""
     # Implementation goes here
     pass
 
-@router.delete("/{document_id}")
-async def delete_document(document_id: int) -> None:
+@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document(document_id: int, service: DocumentServiceDep) -> None:
     """Endpoint to delete a document by its ID."""
-    # Implementation goes here
-    pass
+    document = await service.get_document(document_id)
+    if not document:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    try:
+        await service.delete_document(id=document_id, filename=document.name)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

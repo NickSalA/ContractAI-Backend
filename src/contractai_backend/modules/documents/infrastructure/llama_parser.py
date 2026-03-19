@@ -5,16 +5,16 @@ import tempfile
 
 from llama_parse import LlamaParse, ResultType
 
-from contractai_backend.modules.documents.application.interfaces import IExtractor
+from contractai_backend.modules.documents.application.repositories.base_extractor import DocumentExtractor
+from contractai_backend.shared.config import settings
 
 
-class LlamaParseExtractor(IExtractor):
+class LlamaParseExtractor(DocumentExtractor):
     def __init__(
         self,
-        api_key: str
         ):
         self.parser = LlamaParse(
-            api_key=api_key,
+            api_key=settings.LLAMA_PARSE_API_KEY,
             result_type=ResultType.MD,
             verbose=False,
             language="es",

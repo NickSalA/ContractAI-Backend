@@ -1,9 +1,10 @@
 """Database model for documents with SQLModel."""
 from datetime import date
 
+from pydantic import field_validator
 from sqlalchemy import Column, Integer
 from sqlalchemy.dialects.postgresql import ENUM
-from sqlmodel import Field, SQLModel, field_validator
+from sqlmodel import Field, SQLModel
 
 from .value_objs import DocumentState, DocumentType
 
@@ -16,18 +17,18 @@ class DocumentTable(SQLModel, table=True):
     name: str = Field(sa_column=Column("name", nullable=False))
     client: str = Field(sa_column=Column("client", nullable=False))
     type: DocumentType = Field(sa_column=Column("type", ENUM(DocumentType, name="document_type"), nullable=False))
-    start: date = Field(sa_column=Column("start_date", nullable=False))
-    end: date = Field(sa_column=Column("end_date", nullable=False))
+    start_date: date = Field(sa_column=Column("start_date", nullable=False))
+    end_date: date = Field(sa_column=Column("end_date", nullable=False))
     value: float = Field(sa_column=Column("value", nullable=False))
     currency: str = Field(sa_column=Column("currency", nullable=False))
     licenses: int = Field(sa_column=Column("licenses", type_=Integer, nullable=False))
-    state: DocumentState = Field(sa_column=Column("state", ENUM(DocumentState, name="document_state"), nullable=False))
+    state: DocumentState = Field(default=DocumentState.ACTIVE, sa_column=Column("state", ENUM(DocumentState, name="document_state"), nullable=False))
 
-    @field_validator("end")
+    @field_validator("end_date")
     @classmethod
     def validate_end_date(cls, end_date: date, values) -> date:
         """Valida que la fecha de fin no sea anterior a la fecha de inicio."""
-        start_date = values.get("start")
+        start_date = values.get("start_date")
         if start_date and end_date < start_date:
             raise ValueError("End date cannot be earlier than start date.")
         return end_date

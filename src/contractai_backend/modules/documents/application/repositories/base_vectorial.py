@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
-class IVectorRepository(ABC):
+class VectorRepository(ABC):
     """Stores vectorized document chunks and retrieves similar content."""
 
     @abstractmethod

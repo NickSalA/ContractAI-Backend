@@ -5,8 +5,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from contractai_backend.modules.chatbot.api.routers import chat_router, conversation_router
+# from contractai_backend.modules.chatbot.api.routers import chat_router, conversation_router
 from contractai_backend.modules.documents.api.routers import router as documents_router
+from contractai_backend.modules.documents.infrastructure.voyage_embedding import configure_embedding
 from contractai_backend.modules.users.api.routers import auth_router, users_router
 from contractai_backend.shared.config import settings
 
@@ -17,7 +18,7 @@ def create() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         """Lifespan context manager for startup and shutdown events."""
-        # Aquí puedes agregar cualquier lógica de inicialización que necesites
+        configure_embedding()
         yield
         # Aquí puedes agregar cualquier lógica de limpieza que necesites
 
@@ -26,8 +27,8 @@ def create() -> FastAPI:
     app.include_router(documents_router, prefix="/documents", tags=["documents"])
     app.include_router(auth_router, prefix="/login", tags=["Autenticación"])
     app.include_router(users_router, prefix="/user", tags=["Usuarios"])
-    app.include_router(chat_router, prefix="/chatbot", tags=["Chatbot"])
-    app.include_router(conversation_router, prefix="/conversations", tags=["Conversaciones"])
+    # app.include_router(chat_router, prefix="/chatbot", tags=["Chatbot"])
+    # app.include_router(conversation_router, prefix="/conversations", tags=["Conversaciones"])
 
     app.add_middleware(
         CORSMiddleware,
