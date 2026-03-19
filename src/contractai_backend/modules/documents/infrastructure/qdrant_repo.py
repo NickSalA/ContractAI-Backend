@@ -28,23 +28,25 @@ class LlamaIndexQdrantRepository(VectorRepository):
         exists = await self.async_client.collection_exists(collection_name=index)
         if not exists:
             await self.async_client.recreate_collection(
-                collection_name=index,
-                vectors_config=models.VectorParams(
-                size=1536,
-                distance=models.Distance.COSINE
-                )
+                collection_name=index, vectors_config=models.VectorParams(size=1536, distance=models.Distance.COSINE)
             )
+        try:
+            await self.async_client.create_payload_index(collection_name=index, field_name="filename", field_schema=models.PayloadSchemaType.KEYWORD)
+        except (ValueError, RuntimeError) as e:
+            if "already exists" not in str(e):
+                raise
+
         try:
             await self.async_client.create_payload_index(
                 collection_name=index,
-                field_name="filename",
-                field_schema=models.PayloadSchemaType.KEYWORD
+                field_name="document_id",
+                field_schema=models.PayloadSchemaType.INTEGER,
             )
         except (ValueError, RuntimeError) as e:
             if "already exists" not in str(e):
                 raise
 
-    async def delete_vectors(self, index_name: str, id: int):
+    async def delete_vectors(self, index_name: str, document_id: int):
         """Elimina todos los vectores asociados a un documento específico en Qdrant, identificados por el nombre del archivo."""
         exists = await self.async_client.collection_exists(collection_name=index_name)
         if not exists:
@@ -53,10 +55,8 @@ class LlamaIndexQdrantRepository(VectorRepository):
         await self.async_client.delete(
             collection_name=index_name,
             points_selector=models.FilterSelector(
-                filter=models.Filter(
-                    must=[models.FieldCondition(key="document_id", match=models.MatchValue(value=id))]
-                )
-            )
+                filter=models.Filter(must=[models.FieldCondition(key="document_id", match=models.MatchValue(value=document_id))])
+            ),
         )
 
     async def add_vectors(self, index_name: str, document_id: int, chunks: list) -> None:
@@ -70,10 +70,7 @@ class LlamaIndexQdrantRepository(VectorRepository):
 
         await self.delete_vectors(index_name, document_id)
 
-        vector_store = QdrantVectorStore(
-            client=self.sync_client,
-            collection_name=index_name
-        )
+        vector_store = QdrantVectorStore(client=self.sync_client, collection_name=index_name)
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
         try:

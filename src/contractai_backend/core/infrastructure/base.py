@@ -1,4 +1,5 @@
 """BaseRepository: Clase genérica para manejar operaciones CRUD con SQLModel y AsyncSession."""
+
 from collections.abc import Sequence
 from typing import Any
 
@@ -29,20 +30,20 @@ class PostgresBaseRepository[T: BaseTable](BaseRepository[T]):
 
     async def save(self, entity: T) -> T:
         """Crea un nuevo registro en la base de datos a partir de la entidad. Devuelve la entidad creada con su ID asignado."""
-        obj = self.model.model_validate(entity)
+        obj = entity if isinstance(entity, self.model) else self.model.model_validate(entity)
         self.session.add(obj)
         await self.session.commit()
         await self.session.refresh(obj)
         return obj
 
-    async def get_all(self, filters: dict[str, Any] | None = None) -> Sequence[T]:
+    async def get_all(self, filters: dict[str, Any] | None = None) -> list[T]:
         """Lista entidades, opcionalmente filtrando por campos específicos."""
         query = select(self.model)
         if filters:
             for field, value in filters.items():
                 query = query.where(getattr(self.model, field) == value)
         result = await self.session.exec(query)
-        return result.all()
+        return list(result.all())
 
     async def update(self, entity: T) -> T:
         """Actualiza el registro existente con los datos de la entidad. Devuelve la entidad actualizada."""
@@ -51,11 +52,11 @@ class PostgresBaseRepository[T: BaseTable](BaseRepository[T]):
         await self.session.refresh(db_merged)
         return db_merged
 
-    async def delete(self, obj_id: int) -> bool:
+    async def delete(self, id: int) -> bool:
         """Elimina el registro y devuelve True si tuvo éxito."""
-        db_obj = await self.get_by_id(obj_id)
+        db_obj = await self.get_by_id(id)
         if not db_obj:
-            raise ValueError(f"Registro con ID {obj_id} no encontrado")
+            raise ValueError(f"Registro con ID {id} no encontrado")
 
         await self.session.delete(db_obj)
         await self.session.commit()
