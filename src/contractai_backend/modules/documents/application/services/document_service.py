@@ -40,7 +40,7 @@ class DocumentService:
         try:
             await self.vector_repo.add_vectors(
                 index_name=index_name,
-                filename=filename,
+                document_id=save_doc.id,
                 chunks=parsed_document
             )
         except Exception as e:
@@ -57,10 +57,10 @@ class DocumentService:
         """Retrieves a single document by ID from the relational repository."""
         return await self.sql_repo.get_by_id(id)
 
-    async def delete_document(self, id: int, filename: str, index_name: str = "contracts_index") -> bool:
+    async def delete_document(self, id: int, index_name: str = "contracts_index") -> bool:
         """Deletes a document from both the relational and vector repositories."""
         try:
-            await self.vector_repo.delete_vectors(index_name=index_name, filename=filename)
+            await self.vector_repo.delete_vectors(index_name=index_name, document_id=id)
         except Exception as e:
             raise RuntimeError(f"Failed to delete document vectors: {e!s}") from e
         return await self.sql_repo.delete(id)

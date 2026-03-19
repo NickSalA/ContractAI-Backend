@@ -60,6 +60,6 @@ async def update_document(document_id: int, document: UpdateDocumentRequest, ser
     pass
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
-async def delete_document(document_id: int, filename: str, service: DocumentServiceDep) -> None:
+async def delete_document(id: int, service: DocumentServiceDep) -> None:
     """Endpoint to delete a document by its ID."""
-    await service.delete_document(document_id, filename)
+    await service.delete_document(id)

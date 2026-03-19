@@ -5,6 +5,7 @@ from loguru import logger
 from uvicorn import run
 
 from .shared.logger import setup
+from .shared.config import settings
 
 setup()
 
@@ -17,4 +18,4 @@ except Exception as e:
 
 def main():
     """Función principal para ejecutar la aplicación FastAPI."""
-    run("contractai_backend.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    run("contractai_backend.main:app", host="0.0.0.0", port=8000, reload=True, log_level=settings.LOG_LEVEL)
