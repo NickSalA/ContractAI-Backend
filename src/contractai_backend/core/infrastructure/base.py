@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from typing import Any
 
-from sqlmodel import select
+from sqlmodel import select, asc
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ..application.base import BaseRepository
@@ -38,7 +38,7 @@ class PostgresBaseRepository[T: BaseTable](BaseRepository[T]):
 
     async def get_all(self, filters: dict[str, Any] | None = None) -> Sequence[T]:
         """Lista entidades, opcionalmente filtrando por campos específicos."""
-        query = select(self.model)
+        query = select(self.model).order_by(asc(self.model.id))
         if filters:
             for field, value in filters.items():
                 query = query.where(getattr(self.model, field) == value)
