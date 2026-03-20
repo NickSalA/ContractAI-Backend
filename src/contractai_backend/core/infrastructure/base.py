@@ -36,14 +36,14 @@ class PostgresBaseRepository[T: BaseTable](BaseRepository[T]):
         await self.session.refresh(obj)
         return obj
 
-    async def get_all(self, filters: dict[str, Any] | None = None) -> list[T]:
+    async def get_all(self, filters: dict[str, Any] | None = None) -> Sequence[T]:
         """Lista entidades, opcionalmente filtrando por campos específicos."""
         query = select(self.model)
         if filters:
             for field, value in filters.items():
                 query = query.where(getattr(self.model, field) == value)
         result = await self.session.exec(query)
-        return list(result.all())
+        return result.all()
 
     async def update(self, entity: T) -> T:
         """Actualiza el registro existente con los datos de la entidad. Devuelve la entidad actualizada."""
