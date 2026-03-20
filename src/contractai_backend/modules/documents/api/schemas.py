@@ -26,7 +26,7 @@ class CreateDocumentRequest(DocumentBase):
     pass
 
 
-class UpdateDocumentRequest(DocumentBase):
+class UpdateDocumentRequest(BaseModel):
     """Request schema for updating an existing document."""
 
     name: str | None = None
@@ -44,6 +44,8 @@ class DocumentResponse(DocumentBase):
 
     id: int = Field(..., description="Unique identifier of the document")
     state: DocumentState = Field(..., description="Current state of the document (e.g., ACTIVE, EXPIRED)")
+    file_path: str | None = Field(default=None, description="Storage path of the associated file")
+    file_name: str | None = Field(default=None, description="Original name of the associated file")
 
     model_config = ConfigDict(from_attributes=True)
 

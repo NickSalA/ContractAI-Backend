@@ -66,9 +66,28 @@ async def get_document_file_url(document_id: int, service: DocumentServiceDep) -
 
 
 @router.patch("/{document_id}", response_model=DocumentResponse)
-async def update_document(document_id: int, document: UpdateDocumentRequest, service: DocumentServiceDep) -> DocumentResponse:
+async def update_document(
+    document_id: int,
+    service: DocumentServiceDep,
+    document: str = Form(...),
+    file: UploadFile | None = None,
+) -> DocumentResponse:
     """Endpoint to update an existing document."""
-    updated_doc = await service.update_document(id=document_id, data=document)
+    try:
+        doc_data = json.loads(document)
+        doc_obj = UpdateDocumentRequest(**doc_data)
+    except (json.JSONDecodeError, ValidationError) as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+
+    file_content = await file.read() if file else None
+
+    updated_doc = await service.update_document(
+        id=document_id,
+        data=doc_obj,
+        file=file_content,
+        filename=file.filename if file else None,
+        content_type=file.content_type or "application/pdf" if file else "application/pdf",
+    )
     return DocumentResponse.model_validate(updated_doc)
 
 
