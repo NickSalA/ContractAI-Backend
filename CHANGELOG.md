@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.5 (2026-03-20)
+
+### Bug Fixes
+
+- Define ContractAI system prompt for chatbot agent
+  ([`5f38d52`](https://github.com/NickSalA/ContractAI-Backend/commit/5f38d52caa67a740e7cba539bc0d312baca9be57))
+
+
 ## v0.1.4 (2026-03-20)
 
 ### Bug Fixes
