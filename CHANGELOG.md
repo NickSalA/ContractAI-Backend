@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.2 (2026-03-20)
+
+### Bug Fixes
+
+- Update semantic release configuration to use version_variables
+  ([`b067b9b`](https://github.com/NickSalA/ContractAI-Backend/commit/b067b9bdacc285f026e348111498541c7484ade4))
+
+
 ## v0.1.1 (2026-03-20)
 
 ### Bug Fixes
