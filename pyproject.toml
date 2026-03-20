@@ -74,6 +74,10 @@ allowed_tags = ["feat", "fix", "perf", "build", "chore", "ci", "docs", "style", 
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
 
+[tool.semantic_release.commit_author]
+env = "GIT_COMMIT_AUTHOR"
+default = "Sam Altman <not-for-profit@openai.com>"
+
 [dependency-groups]
 dev = [
     "python-semantic-release>=10.5.3",
