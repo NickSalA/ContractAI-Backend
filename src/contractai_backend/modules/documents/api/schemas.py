@@ -54,3 +54,10 @@ class DocumentFileUrlResponse(BaseModel):
     """Response schema with a temporary URL to access a document file."""
 
     url: str = Field(..., description="Signed URL for temporary access")
+
+class FileRequest(BaseModel):
+    """Request schema for file uploads."""
+
+    content: bytes = Field(..., description="Binary content of the file", repr=False)
+    filename: str = Field(..., description="Original name of the file")
+    content_type: str = Field(..., description="MIME type of the file")

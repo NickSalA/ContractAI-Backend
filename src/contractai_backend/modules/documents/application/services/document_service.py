@@ -1,8 +1,8 @@
 """DocumentService: Orchestrates document creation and storage across repositories."""
 
-import re
+from loguru import logger
 
-from ...api.schemas import CreateDocumentRequest, UpdateDocumentRequest
+from ...api.schemas import CreateDocumentRequest, FileRequest, UpdateDocumentRequest
 from ...domain.entities import DocumentTable
 from ..repositories import DocumentExtractor, DocumentRepository, DocumentStorageRepository, VectorRepository
 
@@ -20,36 +20,14 @@ class DocumentService:
         self.extractor = extractor
         self.storage_repo = storage_repo
 
-    @staticmethod
-    def _sanitize_filename(filename: str) -> str:
-        """Sanitizes filenames to a safe storage-friendly format."""
-        base_name = filename.rsplit("/", maxsplit=1)[-1].rsplit("\\", maxsplit=1)[-1]
-        normalized = re.sub(r"[^A-Za-z0-9._-]", "_", base_name).strip("._")
-        if not normalized:
-            return "document.pdf"
-        if "." not in normalized:
-            return f"{normalized}.pdf"
-        return normalized
-
-    @classmethod
-    def build_storage_path(cls, document_id: int, filename: str | None = None) -> str:
-        """Builds deterministic storage path for each document."""
-        if not filename:
-            return f"documents/{document_id}.pdf"
-        safe_name = cls._sanitize_filename(filename)
-        return f"documents/{document_id}/{safe_name}"
-
     async def create_document(
         self,
-        file: bytes,
-        filename: str,
         data: CreateDocumentRequest,
-        content_type: str = "application/pdf",
+        file_data: FileRequest,
         index_name: str = "contracts_index",
     ) -> DocumentTable:
-        """Creates a new document, extracts data, and stores it in both repositories."""
-        parsed_document = await self.extractor.extract(file=file, filename=filename)
-
+        """Creates a new document, orchestrating SQL, Storage, and Vector DB."""
+        parsed_document = await self.extractor.extract(file=file_data.content, filename=file_data.filename)
         if not parsed_document:
             raise ValueError("Failed to extract data from the document.")
 
@@ -63,34 +41,49 @@ class DocumentService:
             currency=data.currency,
             licenses=data.licenses,
         )
-
         save_doc = await self.sql_repo.save(new_document)
         document_id = save_doc.id
-        storage_path = self.build_storage_path(document_id, filename)
+
+        storage_path = None
+        vectors_added = False
 
         try:
-            await self.storage_repo.upload_file(path=storage_path, file=file, content_type=content_type)
-        except Exception as e:
-            await self.sql_repo.delete(document_id)
-            raise RuntimeError(f"Failed to store document file: {e!s}") from e
+            storage_path = await self.storage_repo.upload_file(
+                document_id=document_id, file=file_data.content, filename=file_data.filename, content_type=file_data.content_type
+            )
 
-        save_doc.file_path = storage_path
-        save_doc.file_name = filename
-        updated_saved_doc = await self.sql_repo.update(save_doc)
-        if not updated_saved_doc:
-            raise RuntimeError("Failed to persist document file metadata")
+            await self.vector_repo.add_vectors(
+                index_name=index_name, document_id=document_id, chunks=parsed_document
+            )
+            vectors_added = True
 
-        try:
-            await self.vector_repo.add_vectors(index_name=index_name, document_id=document_id, chunks=parsed_document)
+            save_doc.file_path = storage_path
+            save_doc.file_name = file_data.filename
+            updated_saved_doc = await self.sql_repo.update(save_doc)
+
+            if not updated_saved_doc:
+                raise RuntimeError("Failed to persist document file metadata in SQL")
+
+            return updated_saved_doc
+
         except Exception as e:
+            if vectors_added:
+                try:
+                    await self.vector_repo.delete_vectors(index_name=index_name, document_id=document_id)
+                except Exception:
+                    pass
+
+            if storage_path:
+                try:
+                    await self.storage_repo.delete_file(path=storage_path)
+                except Exception:
+                    pass
+
             try:
-                await self.storage_repo.delete_file(path=storage_path)
+                await self.sql_repo.delete(document_id)
             except Exception:
                 pass
-            await self.sql_repo.delete(document_id)
-            raise RuntimeError(f"Failed to store document vectors: {e!s}") from e
-
-        return updated_saved_doc
+            raise RuntimeError(f"Document creation transaction failed and was rolled back: {e!s}") from e
 
     async def get_documents(self) -> list[DocumentTable]:
         """Retrieves all documents from the relational repository."""
@@ -101,7 +94,7 @@ class DocumentService:
         return await self.sql_repo.get_by_id(id)
 
     async def delete_document(self, id: int, index_name: str = "contracts_index") -> bool:
-        """Deletes a document from both the relational and vector repositories."""
+        """Deletes a document orchestrating SQL, VectorDB, and Storage."""
         doc = await self.sql_repo.get_by_id(id)
         if not doc:
             raise ValueError(f"Document with id {id} not found")
@@ -111,11 +104,11 @@ class DocumentService:
         except Exception as e:
             raise RuntimeError(f"Failed to delete document vectors: {e!s}") from e
 
-        try:
-            storage_path = doc.file_path if doc.file_path else self.build_storage_path(id)
-            await self.storage_repo.delete_file(path=storage_path)
-        except Exception as e:
-            raise RuntimeError(f"Failed to delete document file: {e!s}") from e
+        if doc.file_path:
+            try:
+                await self.storage_repo.delete_file(doc.file_path)
+            except Exception as e:
+                logger.exception(f"Failed to delete document file from storage: {e!s}")
 
         return await self.sql_repo.delete(id)
 
@@ -123,62 +116,80 @@ class DocumentService:
         self,
         id: int,
         data: UpdateDocumentRequest,
-        file: bytes | None = None,
-        filename: str | None = None,
-        content_type: str = "application/pdf",
+        file_data: FileRequest | None = None,
         index_name: str = "contracts_index",
     ) -> DocumentTable:
-        """Updates an existing document in the relational repository."""
+        """Updates an existing document orchestrating SQL, VectorDB, and Storage."""
         doc = await self.sql_repo.get_by_id(id)
         if not doc:
             raise ValueError(f"Document with id {id} not found")
+
+        old_storage_path = doc.file_path
 
         update_data = data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(doc, field, value)
 
-        if file is not None:
-            if not filename:
-                raise ValueError("Filename is required when replacing the file")
+        if file_data is None:
+            updated_doc = await self.sql_repo.update(doc)
+            if not updated_doc:
+                raise RuntimeError(f"Failed to update document metadata with id {id}")
+            return updated_doc
 
-            parsed_document = await self.extractor.extract(file=file, filename=filename)
-            if not parsed_document:
-                raise ValueError("Failed to extract data from the replacement document.")
+        if not file_data.filename or file_data.content_type is None:
+            raise ValueError("Filename and content type are required when replacing the file")
 
-            old_storage_path = doc.file_path if doc.file_path else self.build_storage_path(id)
-            new_storage_path = self.build_storage_path(id, filename)
+        parsed_document = await self.extractor.extract(file=file_data.content, filename=file_data.filename)
+        if not parsed_document:
+            raise ValueError("Failed to extract data from the replacement document.")
 
-            await self.storage_repo.upload_file(path=new_storage_path, file=file, content_type=content_type)
+        new_storage_path = None
 
-            try:
-                await self.vector_repo.add_vectors(index_name=index_name, document_id=id, chunks=parsed_document)
-            except Exception as e:
-                if new_storage_path != old_storage_path:
-                    try:
-                        await self.storage_repo.delete_file(path=new_storage_path)
-                    except Exception:
-                        pass
-                raise RuntimeError(f"Failed to update document vectors: {e!s}") from e
+        try:
+            new_storage_path = await self.storage_repo.upload_file(
+                document_id=id,
+                file=file_data.content,
+                filename=file_data.filename,
+                content_type=file_data.content_type
+            )
 
-            if new_storage_path != old_storage_path:
+            await self.vector_repo.add_vectors(
+                index_name=index_name,
+                document_id=id,
+                chunks=parsed_document
+            )
+
+            doc.file_path = new_storage_path
+            doc.file_name = file_data.filename
+            updated_doc = await self.sql_repo.update(doc)
+
+            if not updated_doc:
+                raise RuntimeError(f"Failed to update document with id {id} in SQL")
+
+            if old_storage_path and old_storage_path != new_storage_path:
                 try:
                     await self.storage_repo.delete_file(path=old_storage_path)
                 except Exception:
                     pass
 
-            doc.file_path = new_storage_path
-            doc.file_name = filename
+            return updated_doc
 
-        updated_doc = await self.sql_repo.update(doc)
-        if not updated_doc:
-            raise RuntimeError(f"Failed to update document with id {id}")
-        return updated_doc
+        except Exception as e:
+            if new_storage_path:
+                try:
+                    await self.storage_repo.delete_file(path=new_storage_path)
+                except Exception:
+                    pass
+
+            raise RuntimeError(f"Document update transaction failed: {e!s}") from e
 
     async def get_document_signed_url(self, id: int, expires_in: int = 3600) -> str:
         """Returns a temporary signed URL for a stored document file."""
         doc = await self.sql_repo.get_by_id(id)
         if not doc:
             raise ValueError(f"Document with id {id} not found")
+        if doc.file_path is None:
+            raise ValueError(f"Document with id {id} does not have an associated file")
 
-        storage_path = doc.file_path if doc.file_path else self.build_storage_path(id)
+        storage_path = doc.file_path
         return await self.storage_repo.create_signed_url(path=storage_path, expires_in=expires_in)

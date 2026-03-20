@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from ..application.repositories import DocumentRepository
 from ..application.services import DocumentService
 from .dependencies import get_document_repository, get_document_service
-from .schemas import CreateDocumentRequest, DocumentFileUrlResponse, DocumentResponse, UpdateDocumentRequest
+from .schemas import CreateDocumentRequest, DocumentFileUrlResponse, DocumentResponse, FileRequest, UpdateDocumentRequest
 
 router = APIRouter()
 
@@ -27,16 +27,19 @@ async def create_document(file: UploadFile, service: DocumentServiceDep, documen
     except (json.JSONDecodeError, ValidationError) as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
 
-    if file.filename is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must have a valid filename.")
+    if file.filename is None or file.content_type is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must have a valid filename and content type.")
 
     file_content = await file.read()
+    file_data=FileRequest(
+            content=file_content,
+            filename=file.filename,
+            content_type=file.content_type,
+        )
 
     saved_document = await service.create_document(
-        file=file_content,
-        filename=file.filename,
         data=doc_obj,
-        content_type=file.content_type or "application/pdf",
+        file_data=file_data,
     )
 
     return DocumentResponse.model_validate(saved_document)
@@ -81,14 +84,21 @@ async def update_document(
     except (json.JSONDecodeError, ValidationError) as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
 
-    file_content = await file.read() if file else None
+    if file:
+        file_content = await file.read()
+        if file.filename is None or file.content_type is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must have a valid filename and content type.")
+
+        file_data = FileRequest(
+            content=file_content,
+            filename=file.filename,
+            content_type=file.content_type,
+        )
 
     updated_doc = await service.update_document(
         id=document_id,
         data=doc_obj,
-        file=file_content,
-        filename=file.filename if file else None,
-        content_type=file.content_type or "application/pdf" if file else "application/pdf",
+        file_data=file_data,
     )
     return DocumentResponse.model_validate(updated_doc)
 
