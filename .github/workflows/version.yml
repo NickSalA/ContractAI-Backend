@@ -15,17 +15,13 @@ jobs:
       group: ${{ github.workflow }}-release-${{ github.ref_name }}
       cancel-in-progress: false
     permissions:
-      contents: write # Necesario para crear Tags y Releases
+      contents: write
     
-    outputs:
-      released: ${{ steps.release.outputs.released || 'false' }}
-      tag: ${{ steps.release.outputs.tag }}
-
     steps:
       - name: Setup | Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fundamental para que PSR vea el historial
+          fetch-depth: 0 
 
       - name: Setup | Install uv
         uses: astral-sh/setup-uv@v5
@@ -33,10 +29,12 @@ jobs:
           enable-cache: true
 
       - name: Action | Semantic Version Release
-        id: release
-        uses: python-semantic-release/python-semantic-release@v9.15.0 # Usa la v9 o v10 estable
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        # En lugar de 'uses: python-semantic-release...', corremos el comando directo
+        run: |
+          uv add --dev python-semantic-release
+          uv run semantic-release version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # PSR usará automáticamente 'uv build' si lo pusiste en tu pyproject.toml
 
   #     - name: Upload | Distribution Artifacts
