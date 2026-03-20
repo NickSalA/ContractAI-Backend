@@ -6,13 +6,15 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, HTTPException, Response, UploadFile, status
 from pydantic import ValidationError
 
+from ..application.repositories import DocumentRepository
 from ..application.services import DocumentService
-from .dependencies import get_document_service
+from .dependencies import get_document_repository, get_document_service
 from .schemas import CreateDocumentRequest, DocumentFileUrlResponse, DocumentResponse, UpdateDocumentRequest
 
 router = APIRouter()
 
 DocumentServiceDep = Annotated[DocumentService, Depends(get_document_service)]
+DocumentRepositoryDep = Annotated[DocumentRepository, Depends(get_document_repository)]
 
 
 # TODO: Orquestar de mejor forma el Schema de document.
@@ -42,17 +44,17 @@ async def create_document(file: UploadFile, service: DocumentServiceDep, documen
 
 @router.get("/", response_model=list[DocumentResponse])
 async def list_documents(
-    service: DocumentServiceDep,
+    repository: DocumentRepositoryDep,
 ) -> list[DocumentResponse]:
     """Endpoint to list documents with optional filters."""
-    docs = await service.get_documents()
+    docs = await repository.get_all()
     return [DocumentResponse.model_validate(doc) for doc in docs]
 
 
 @router.get("/{document_id}", response_model=DocumentResponse)
-async def get_document(document_id: int, service: DocumentServiceDep) -> DocumentResponse:
+async def get_document(document_id: int, repository: DocumentRepositoryDep) -> DocumentResponse:
     """Endpoint to retrieve a document by its ID."""
-    doc = await service.get_document(document_id)
+    doc = await repository.get_by_id(document_id)
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     return DocumentResponse.model_validate(doc)
