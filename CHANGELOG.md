@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.1.3 (2026-03-20)
+
+### Bug Fixes
+
+- Initialize file_data for metadata-only document updates
+  ([`d63da6a`](https://github.com/NickSalA/ContractAI-Backend/commit/d63da6a63f148356cbed7c9947cb08f69c2d6ff0))
+
+### Continuous Integration
+
+- Add commit author configuration for semantic release
+  ([`e61cb5c`](https://github.com/NickSalA/ContractAI-Backend/commit/e61cb5c712a6b3a62b2a693ed77ecbe2d3c98073))
+
+### Refactoring
+
+- Update return type of get_all method to use Sequence
+  ([`44b037c`](https://github.com/NickSalA/ContractAI-Backend/commit/44b037c49e06f0d2b4a7b27fa3e7e59aeeb8943d))
+
+
 ## v0.1.2 (2026-03-20)
 
 ### Bug Fixes
