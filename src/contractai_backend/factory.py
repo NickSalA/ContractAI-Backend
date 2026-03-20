@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .core.exceptions.base import AppError
-
 from .modules.chatbot.api.routers import chat_router, conversation_router
 from .modules.documents.api.routers import router as documents_router
 from .modules.documents.infrastructure import configure_embedding
