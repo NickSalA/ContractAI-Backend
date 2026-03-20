@@ -48,7 +48,7 @@ convention = "google"
 max-args = 5
 
 [tool.semantic_release]
-version_toml = ["pyproject.toml:version"]
+version_variables = ["pyproject.toml:version"]
 build_command = """
     uv lock --upgrade-package "$PACKAGE_NAME"
     git add uv.lock
