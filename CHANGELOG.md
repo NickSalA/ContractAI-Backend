@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.6 (2026-03-20)
+
+### Bug Fixes
+
+- Update prompt and visualizer for token costs
+  ([`66e472a`](https://github.com/NickSalA/ContractAI-Backend/commit/66e472a69eab59e5c0ca593a575e326eca1fc80b))
+
+
 ## v0.1.5 (2026-03-20)
 
 ### Bug Fixes
