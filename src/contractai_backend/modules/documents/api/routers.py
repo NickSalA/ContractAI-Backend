@@ -84,6 +84,7 @@ async def update_document(
     except (json.JSONDecodeError, ValidationError) as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
 
+    file_data = None
     if file:
         file_content = await file.read()
         if file.filename is None or file.content_type is None:
