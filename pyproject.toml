@@ -49,7 +49,6 @@ max-args = 5
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:version"]
-branches = ["main"]
 build_command = """
     uv lock --upgrade-package "$PACKAGE_NAME"
     git add uv.lock
@@ -58,10 +57,15 @@ build_command = """
 upload_to_vcs_release = true
 upload_to_pypi = false
 
+[tool.semantic_release.branches.main]
+match = "main"
+
 [tool.semantic_release.changelog]
+# Mueve esto aquí para evitar el Warning de la v10
 template_dir = "templates"
+
+[tool.semantic_release.changelog.default_templates]
 changelog_file = "CHANGELOG.md"
-exclude_commit_patterns = []
 
 [dependency-groups]
 dev = [
