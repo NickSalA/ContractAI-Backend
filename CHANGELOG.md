@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.1.1 (2026-03-20)
+
+### Bug Fixes
+
+- Test
+  ([`43c71f1`](https://github.com/NickSalA/ContractAI-Backend/commit/43c71f10032d100d4745f4a4d59a9bdf510e0b0a))
+
+### Continuous Integration
+
+- Add commit parser options for semantic release
+  ([`e971576`](https://github.com/NickSalA/ContractAI-Backend/commit/e971576b98ffb8c92c04c2c8366fe8c1a5013e78))
+
+
 ## v0.3.0 (2026-03-20)
 
 
