@@ -1,6 +1,7 @@
 """Factory module for creating and configuring the FastAPI application."""
 
 from contextlib import asynccontextmanager
+from importlib.metadata import version as get_version
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -16,6 +17,7 @@ from .shared.api.error_handlers import app_error_handler, global_exception_handl
 from .shared.api.middlewares import LoguruMiddleware
 from .shared.config import settings
 
+__version__ = get_version("contractai-backend")
 
 def create() -> FastAPI:
     """Creates and configures the FastAPI application."""
@@ -27,7 +29,7 @@ def create() -> FastAPI:
         yield
         # Aquí puedes agregar cualquier lógica de limpieza que necesites
 
-    app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
+    app = FastAPI(title=settings.PROJECT_NAME, version=__version__, lifespan=lifespan)
 
     app.include_router(documents_router, prefix="/documents", tags=["documents"])
     app.include_router(auth_router, prefix="/login", tags=["Autenticación"])
@@ -52,6 +54,6 @@ def create() -> FastAPI:
     @app.get("/")
     def home():
         """Endpoint raíz para verificar que la aplicación está funcionando."""
-        return {"message": "¡Bienvenido a ContractAI-Backend!"}
+        return {"message": "¡Bienvenido a ContractAI-Backend!", "version": __version__}
 
     return app

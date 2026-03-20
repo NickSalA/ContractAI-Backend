@@ -47,10 +47,23 @@ convention = "google"
 [tool.ruff.lint.pylint]
 max-args = 5
 
-[tool.commitizen]
-name = "cz_conventional_commits"
-version = "0.2.0"  # Pon aquí tu versión actual
-tag_format = "v$version"
-version_files = [
-    "pyproject.toml:version"
+[tool.semantic_release]
+version_toml = ["pyproject.toml:version"]
+branches = ["main"]
+build_command = """
+    uv lock --upgrade-package "$PACKAGE_NAME"
+    git add uv.lock
+    uv build
+"""
+upload_to_vcs_release = true
+upload_to_pypi = false
+
+[tool.semantic_release.changelog]
+template_dir = "templates"
+changelog_file = "CHANGELOG.md"
+exclude_commit_patterns = []
+
+[dependency-groups]
+dev = [
+    "python-semantic-release>=10.5.3",
 ]
