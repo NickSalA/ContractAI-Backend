@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.1.4 (2026-03-20)
+
+### Bug Fixes
+
+- Add ordering to get_all method query
+  ([`eff189a`](https://github.com/NickSalA/ContractAI-Backend/commit/eff189a4a1427d58ffd9f4ad882b6b8702874e1a))
+
+
 ## v0.1.3 (2026-03-20)
 
 ### Bug Fixes
