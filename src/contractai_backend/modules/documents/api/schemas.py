@@ -19,12 +19,16 @@ class DocumentBase(BaseModel):
     currency: str = Field(..., description="Currency code for the document value (e.g., PEN)")
     licenses: int = Field(..., description="Number of licenses covered by the document")
 
+
 class CreateDocumentRequest(DocumentBase):
     """Request schema for creating a new document."""
+
     pass
 
-class UpdateDocumentRequest(DocumentBase):
+
+class UpdateDocumentRequest(BaseModel):
     """Request schema for updating an existing document."""
+
     name: str | None = None
     client: str | None = None
     type: DocumentType | None = None
@@ -34,9 +38,19 @@ class UpdateDocumentRequest(DocumentBase):
     currency: str | None = None
     state: DocumentState | None = None
 
+
 class DocumentResponse(DocumentBase):
     """Response schema for document data."""
+
     id: int = Field(..., description="Unique identifier of the document")
     state: DocumentState = Field(..., description="Current state of the document (e.g., ACTIVE, EXPIRED)")
+    file_path: str | None = Field(default=None, description="Storage path of the associated file")
+    file_name: str | None = Field(default=None, description="Original name of the associated file")
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DocumentFileUrlResponse(BaseModel):
+    """Response schema with a temporary URL to access a document file."""
+
+    url: str = Field(..., description="Signed URL for temporary access")

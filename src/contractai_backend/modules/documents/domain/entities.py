@@ -1,4 +1,5 @@
 """Database model for documents with SQLModel."""
+
 from datetime import date
 
 from pydantic import ValidationInfo, field_validator
@@ -10,6 +11,7 @@ from ....core.domain.base import BaseTable
 from .value_objs import DocumentState, DocumentType
 
 CURRENCY_CODE_LENGTH = 3
+
 
 class DocumentTable(BaseTable, table=True):
     __tablename__: str = "documents"
@@ -23,6 +25,8 @@ class DocumentTable(BaseTable, table=True):
     currency: str = Field(sa_column=Column("currency", nullable=False))
     licenses: int = Field(sa_column=Column("licenses", type_=Integer, nullable=False))
     state: DocumentState = Field(default=DocumentState.ACTIVE, sa_column=Column("state", ENUM(DocumentState, name="document_state"), nullable=False))
+    file_path: str | None = Field(default=None, sa_column=Column("file_path", nullable=True))
+    file_name: str | None = Field(default=None, sa_column=Column("file_name", nullable=True))
 
     @field_validator("end_date")
     @classmethod

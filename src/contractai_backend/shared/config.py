@@ -1,10 +1,12 @@
 """Configuration settings for the application."""
+
 from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Configuration settings for the application."""
+
     PROJECT_NAME: str = "CONTRACT AI"
     LOG_LEVEL: str = "DEBUG"
     GLOBAL_PREFIX: str = "/api/v1"
@@ -45,6 +47,10 @@ class Settings(BaseSettings):
     DATABASE_HOST: str | None = Field(default=...)
     DATABASE_PORT: int | None = Field(default=5432)
 
+    SUPABASE_URL: str = Field(default=...)
+    SUPABASE_SECRET_KEY: str = Field(default=...)
+    SUPABASE_STORAGE_BUCKET: str = Field(default="contracts")
+
     @property
     def DATABASE_URL(self) -> str:  # noqa: N802
         """Recupera la URL de la base de datos desde Key Vault o variable de entorno."""
@@ -65,6 +71,7 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore"
     )
+
 
 try:
     settings = Settings()
