@@ -1,6 +1,6 @@
 [project]
 name = "contractai-backend"
-version = "0.1.0"
+version = "0.1.6"
 description = "Backend para ContractIA - Gestión de Contratos"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -14,7 +14,17 @@ dependencies = [
     "uvicorn>=0.42.0",
     "azure-keyvault-secrets",
     "azure-identity",
-    "pydantic-settings"
+    "pydantic-settings",
+    "langchain-google-genai>=4.2.1",
+    "sqlmodel",
+    "asyncpg",
+    "sqlalchemy.ext",
+    "llama-parse",
+    "qdrant-client",
+    "llama-index-vector-stores-qdrant",
+    "llama-index-embeddings-openai",
+    "python-multipart",
+    "logtail-python"
 ]
 
 [project.scripts]
@@ -25,11 +35,11 @@ requires = ["uv_build>=0.10.9,<0.11.0"]
 build-backend = "uv_build"
 
 [tool.ruff]
-line-length = 120
+line-length = 150
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "D", "PL", "B"]
-ignore = ["D104", "D107"]
+select = ["E", "F", "I", "N", "D", "PL", "B", "W", "ARG", "RUF", "UP", "PTH"]
+ignore = ["D104", "D107", "D101", "D417"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -37,10 +47,37 @@ convention = "google"
 [tool.ruff.lint.pylint]
 max-args = 5
 
-[tool.commitizen]
-name = "cz_conventional_commits"
-version = "0.1.0"  # Pon aquí tu versión actual
-tag_format = "v$version"
-version_files = [
-    "pyproject.toml:version"
+[tool.semantic_release]
+version_variables = ["pyproject.toml:version"]
+build_command = """
+    uv lock --upgrade-package "$PACKAGE_NAME"
+    git add uv.lock
+    uv build
+"""
+upload_to_vcs_release = true
+upload_to_pypi = false
+major_on_zero = false
+allow_zero_version = true
+
+[tool.semantic_release.branches.main]
+match = "main"
+
+[tool.semantic_release.changelog]
+template_dir = "templates"
+
+[tool.semantic_release.changelog.default_templates]
+changelog_file = "CHANGELOG.md"
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["feat", "fix", "perf", "build", "chore", "ci", "docs", "style", "refactor", "test"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+
+[tool.semantic_release.commit_author]
+env = "GIT_COMMIT_AUTHOR"
+default = "Sam Altman <not-for-profit@openai.com>"
+
+[dependency-groups]
+dev = [
+    "python-semantic-release>=10.5.3",
 ]

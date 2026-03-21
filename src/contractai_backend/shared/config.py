@@ -1,12 +1,14 @@
 """Configuration settings for the application."""
+
 from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Configuration settings for the application."""
+
     PROJECT_NAME: str = "CONTRACT AI"
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "DEBUG"
     GLOBAL_PREFIX: str = "/api/v1"
     CORS_ORIGINS: list[str] = ["http://localhost:8000", "http://localhost:3000", "http://localhost:9002"]
     DEBUG: bool = Field(default=False)
@@ -14,6 +16,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = Field(default="your-secret-key")
     ALGORITHM: str | None = None
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=1440)
+
+    PENDING_DAYS: int = Field(default=30)
 
     GEMINI_MODEL_NAME: str = Field(default="gemini-2.5-flash")
     GEMINI_MINI_MODEL_NAME: str = Field(default="gemini-2.5-flash-lite")
@@ -37,12 +41,16 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE: int = Field(default=5)
     MAX_NUM_PAGES: int = Field(default=10)
 
-    DATABASE_NAME: str = Field(default="postgres")
-    DATABASE_PASSWORD: str = Field(default=...)
-    DATABASE_USER: str = Field(default=...)
-    DATABASE_HOST: str = Field(default=...)
-    DATABASE_PORT: int = Field(default=5432)
-    
+    DATABASE_NAME: str | None = Field(default="postgres")
+    DATABASE_PASSWORD: str | None = Field(default=...)
+    DATABASE_USER: str | None = Field(default=...)
+    DATABASE_HOST: str | None = Field(default=...)
+    DATABASE_PORT: int | None = Field(default=5432)
+
+    SUPABASE_URL: str = Field(default=...)
+    SUPABASE_SECRET_KEY: str = Field(default=...)
+    SUPABASE_STORAGE_BUCKET: str = Field(default="contracts")
+
     @property
     def DATABASE_URL(self) -> str:  # noqa: N802
         """Recupera la URL de la base de datos desde Key Vault o variable de entorno."""
@@ -63,6 +71,7 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore"
     )
+
 
 try:
     settings = Settings()
