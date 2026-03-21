@@ -1,13 +1,13 @@
 from llama_index.core import VectorStoreIndex, Settings
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.embeddings.openai import OpenAIEmbedding
-from qdrant_client import QdrantClient
-from contractai_backend.shared.config import settings
-from contractai_backend.modules.chatbot.application.interfaces.vector_repo import IVectorRepository
+from qdrant_client import AsyncQdrantClient
+from ....shared.config import settings
+from ..application.repositories.vector_repo import VectorRepository
 
 
-class ChatbotQdrantRepository(IVectorRepository):
-    def __init__(self):
+class QdrantVectorRepository(VectorRepository):
+    def __init__(self, collection_name: str, client: AsyncQdrantClient):
         Settings.embed_model = OpenAIEmbedding(
             api_key=settings.OPENAI_API_KEY,
             model=settings.OPENAI_EMBEDDING_MODEL_NAME or "text-embedding-3-small"

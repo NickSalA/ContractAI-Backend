@@ -1,6 +1,6 @@
 import random
 from langchain_core.messages import HumanMessage
-from contractai_backend.modules.chatbot.application.interfaces.llm_provider import ILLMProvider
+from contractai_backend.modules.chatbot.application.repositories.llm_provider import ILLMProvider
 from contractai_backend.modules.chatbot.infrastructure.agent.graph import build_graph
 
 

@@ -1,5 +1,9 @@
+"""This module defines the domain entities for the chatbot application, including Message and ChatThread."""
+
 from datetime import datetime
+
 from pydantic import BaseModel
+
 
 class Message(BaseModel):
     content: str

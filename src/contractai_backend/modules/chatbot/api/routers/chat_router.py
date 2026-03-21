@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from contractai_backend.modules.chatbot.api.schemas import ChatRequest, ChatResponse
 from contractai_backend.modules.chatbot.application.use_cases.process_message import ProcessMessageUseCase
 from contractai_backend.modules.chatbot.infrastructure.agent.adapter import LangGraphGeminiAdapter
-from contractai_backend.modules.chatbot.application.interfaces.llm_provider import ILLMProvider
+from contractai_backend.modules.chatbot.application.repositories.llm_provider import ILLMProvider
 
 router = APIRouter()
 
