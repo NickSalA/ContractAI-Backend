@@ -1,16 +1,22 @@
+"""Adaptador que conecta el grafo de LangGraph con la interfaz de LLMProvider que espera el resto del sistema."""
+
 import random
+
 from langchain_core.messages import HumanMessage
-from contractai_backend.modules.chatbot.application.interfaces.llm_provider import ILLMProvider
-from contractai_backend.modules.chatbot.infrastructure.agent.graph import build_graph
+from langgraph.graph.state import CompiledStateGraph, RunnableConfig
+
+from contractai_backend.modules.chatbot.application.repositories.llm_provider import ILLMProvider
 
 
 class LangGraphGeminiAdapter(ILLMProvider):
-    def __init__(self):
-        self.graph = build_graph()
+    def __init__(self, compiled_graph: CompiledStateGraph):
+        """Recibe el grafo ya compilado e inyectado desde afuera."""
+        self.graph = compiled_graph
 
     async def invoke(self, message: str, thread_id: int | None) -> tuple[str, int]:
+        """Invoca el grafo de LangGraph con el mensaje dado y un thread_id opcional."""
         actual_thread_id = thread_id if thread_id is not None else random.randint(10000, 99999)
-        config = {"configurable": {"thread_id": str(actual_thread_id)}}
+        config: RunnableConfig = {"configurable": {"thread_id": str(actual_thread_id)}}
 
         result = await self.graph.ainvoke({"messages": [HumanMessage(content=message)]}, config=config)
 

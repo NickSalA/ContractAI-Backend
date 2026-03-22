@@ -3,6 +3,7 @@
 from fastapi.concurrency import run_in_threadpool
 from llama_index.core import StorageContext, VectorStoreIndex
 from llama_index.core.node_parser import SentenceWindowNodeParser
+from llama_index.core.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import AsyncQdrantClient, QdrantClient
 from qdrant_client.http import models
@@ -40,7 +41,7 @@ class LlamaIndexQdrantRepository(VectorRepository):
             await self.async_client.create_payload_index(
                 collection_name=index,
                 field_name="document_id",
-                field_schema=models.PayloadSchemaType.INTEGER,
+                field_schema=models.PayloadSchemaType.KEYWORD,
             )
         except (ValueError, RuntimeError) as e:
             if "already exists" not in str(e):
@@ -55,7 +56,7 @@ class LlamaIndexQdrantRepository(VectorRepository):
         await self.async_client.delete(
             collection_name=index_name,
             points_selector=models.FilterSelector(
-                filter=models.Filter(must=[models.FieldCondition(key="document_id", match=models.MatchValue(value=document_id))])
+                filter=models.Filter(must=[models.FieldCondition(key="document_id", match=models.MatchValue(value=str(document_id)))])
             ),
         )
 
@@ -63,8 +64,10 @@ class LlamaIndexQdrantRepository(VectorRepository):
         """Ejecuta la ingesta de LlamaIndex hacia Qdrant."""
         await self._ensure_collection(index_name)
 
-        for chunk in chunks:
-            chunk.metadata["document_id"] = document_id
+        for i, chunk in enumerate(chunks):
+            chunk.id_ = f"{document_id}_chunk_{i}"
+            chunk.relationships[NodeRelationship.SOURCE] = RelatedNodeInfo(node_id=str(document_id))
+            chunk.metadata["document_id"] = str(document_id)
             chunk.excluded_embed_metadata_keys = ["document_id"]
             chunk.excluded_llm_metadata_keys = ["document_id"]
 
