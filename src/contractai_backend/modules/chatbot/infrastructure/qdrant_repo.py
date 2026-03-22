@@ -5,7 +5,7 @@ from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import AsyncQdrantClient
 
 from ..application.repositories.vector_repo import VectorRepository
-from .retriever import LlamaIndexWindowRetriever
+from .agent.retriever import LlamaIndexWindowRetriever
 
 
 class QdrantVectorRepository(VectorRepository):

@@ -64,6 +64,8 @@ class LlamaIndexQdrantRepository(VectorRepository):
         await self._ensure_collection(index_name)
 
         for chunk in chunks:
+            chunk.id_ = str(document_id)
+
             chunk.metadata["document_id"] = document_id
             chunk.excluded_embed_metadata_keys = ["document_id"]
             chunk.excluded_llm_metadata_keys = ["document_id"]

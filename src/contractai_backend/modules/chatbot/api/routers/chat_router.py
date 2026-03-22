@@ -4,20 +4,20 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from ...application.repositories.llm_provider import ILLMProvider
+from ...application.services.chatbot_service import ChatbotService
 from ..schemas import ChatRequest, ChatResponse
-from .dependencies import get_llm_provider
+from .dependencies import get_chatbot_service
 
 router = APIRouter()
 
-LlmProviderDep = Annotated[ILLMProvider, Depends(get_llm_provider)]
+ChatbotServiceDep = Annotated[ChatbotService, Depends(get_chatbot_service)]
 
 
 @router.post("/", response_model=ChatResponse)
 async def send_chat_message(
     request: ChatRequest,
-    provider: LlmProviderDep,
+    service: ChatbotServiceDep,
 ) -> ChatResponse:
     """Endpoint para enviar un mensaje al chatbot."""
-    respuesta, thread_id = await provider.invoke(request.message, request.thread_id)
+    respuesta, thread_id = await service.process_user_message(message=request.message, thread_id=request.thread_id)
     return ChatResponse(response=respuesta, thread_id=thread_id)
