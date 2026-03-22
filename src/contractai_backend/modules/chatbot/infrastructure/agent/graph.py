@@ -1,7 +1,10 @@
 """Grafo de estados para el agente conversacional."""
 
-from langchain_core.language_models.chat_models import BaseChatModel
+from functools import partial
+
+from langchain.chat_models import BaseChatModel
 from langchain_core.messages import SystemMessage
+from langchain_core.runnables import Runnable
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -9,6 +12,14 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from .prompts import get_chat_system_prompt
 from .state import AgentState
 
+
+async def call_model(state: AgentState, llm: Runnable):
+    """Nodo que llama al modelo de lenguaje con el estado actual."""
+    system_message = SystemMessage(content=get_chat_system_prompt())
+    messages = [system_message] + state["messages"]
+
+    response = await llm.ainvoke(messages)
+    return {"messages": response}
 
 class ContractAgentGraph:
     def __init__(self, tools: list, llm: BaseChatModel):
@@ -19,20 +30,14 @@ class ContractAgentGraph:
         self.tools = tools
         self.llm = llm.bind_tools(self.tools)
 
-    async def call_model(self, state: AgentState):
-        """Nodo que llama al modelo de lenguaje con el estado actual."""
-        system_message = SystemMessage(content=get_chat_system_prompt())
-        messages = [system_message] + state["messages"]
-
-        response = await self.llm.ainvoke(messages)
-        return {"messages": response}
 
     def build_graph(self):
         """Construye y compila el grafo usando el estado de la instancia."""
         workflow = StateGraph(AgentState)
+        agent_node = partial(call_model, llm=self.llm)
 
         # Agregamos el nodo del agente (nuestro método)
-        workflow.add_node("agent", self.call_model)
+        workflow.add_node("agent", agent_node)
 
         # Agregamos el nodo de herramientas (usando las tools inyectadas)
         workflow.add_node("tools", ToolNode(self.tools))
