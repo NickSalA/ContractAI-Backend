@@ -1,6 +1,7 @@
 """Base repository interface defining common CRUD operations for entities."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 
 
 class BaseRepository[T](ABC):
@@ -10,8 +11,8 @@ class BaseRepository[T](ABC):
         pass
 
     @abstractmethod
-    async def get_all(self) -> list[T]:
-        """Returns a list of all entities."""
+    async def get_all(self) -> Sequence[T]:
+        """Returns a sequence of all entities."""
         pass
 
     @abstractmethod

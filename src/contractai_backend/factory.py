@@ -17,7 +17,8 @@ from .shared.api.error_handlers import app_error_handler, global_exception_handl
 from .shared.api.middlewares import LoguruMiddleware
 from .shared.config import settings
 
-__version__ = get_version("contractai-backend")
+__version__: str = get_version(distribution_name="contractai-backend")
+
 
 def create() -> FastAPI:
     """Creates and configures the FastAPI application."""
@@ -31,27 +32,27 @@ def create() -> FastAPI:
 
     app = FastAPI(title=settings.PROJECT_NAME, version=__version__, lifespan=lifespan)
 
-    app.include_router(documents_router, prefix="/documents", tags=["documents"])
-    app.include_router(auth_router, prefix="/login", tags=["Autenticación"])
-    app.include_router(users_router, prefix="/user", tags=["Usuarios"])
-    app.include_router(chat_router, prefix="/chatbot", tags=["Chatbot"])
-    app.include_router(conversation_router, prefix="/conversations", tags=["Conversaciones"])
+    app.include_router(router=documents_router, prefix="/documents", tags=["documents"])
+    app.include_router(router=auth_router, prefix="/login", tags=["Autenticación"])
+    app.include_router(router=users_router, prefix="/user", tags=["Usuarios"])
+    app.include_router(router=chat_router, prefix="/chatbot", tags=["Chatbot"])
+    app.include_router(router=conversation_router, prefix="/conversations", tags=["Conversaciones"])
 
     app.add_middleware(
-        CORSMiddleware,
+        middleware_class=CORSMiddleware,  # ty:ignore[invalid-argument-type]
         allow_origins=settings.CORS_ORIGINS,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
-    app.add_middleware(LoguruMiddleware)
+    app.add_middleware(middleware_class=LoguruMiddleware)  # ty:ignore[invalid-argument-type]
 
-    app.add_exception_handler(AppError, app_error_handler) # pyright: ignore[reportArgumentType]
-    app.add_exception_handler(StarletteHTTPException, http_exception_handler) # pyright: ignore[reportArgumentType]
-    app.add_exception_handler(RequestValidationError, validation_exception_handler) # pyright: ignore[reportArgumentType]
-    app.add_exception_handler(Exception, global_exception_handler)
+    app.add_exception_handler(exc_class_or_status_code=AppError, handler=app_error_handler)  # ty:ignore[invalid-argument-type]
+    app.add_exception_handler(exc_class_or_status_code=StarletteHTTPException, handler=http_exception_handler)  # ty:ignore[invalid-argument-type]
+    app.add_exception_handler(exc_class_or_status_code=RequestValidationError, handler=validation_exception_handler)  # ty:ignore[invalid-argument-type]
+    app.add_exception_handler(exc_class_or_status_code=Exception, handler=global_exception_handler)
 
-    @app.get("/")
+    @app.get(path="/")
     def home():
         """Endpoint raíz para verificar que la aplicación está funcionando."""
         return {"message": "¡Bienvenido a ContractAI-Backend!", "version": __version__}

@@ -1,10 +1,9 @@
 """Database configuration and session management for ContractAI Backend."""
-
 import ssl
 from contextlib import asynccontextmanager
 
-from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio.engine import AsyncEngine
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from contractai_backend.shared.config import settings
@@ -18,9 +17,8 @@ if DATABASE_URL and "localhost" not in DATABASE_URL:
     ctx.verify_mode = ssl.CERT_NONE
     connect_args = {"ssl": ctx}
 
-# 2. El Engine (Motor)
-engine = create_async_engine(
-    DATABASE_URL,
+engine: AsyncEngine = create_async_engine(
+    url=DATABASE_URL,
     echo=False,
     future=True,
     pool_pre_ping=True,
@@ -29,21 +27,9 @@ engine = create_async_engine(
 
 async def get_session():
     """Proporciona una sesión de base de datos asíncrona."""
-    async with AsyncSession(engine, expire_on_commit=False) as session:
+    async with AsyncSession(bind=engine, expire_on_commit=False) as session:
         try:
             yield session
-        except IntegrityError as e:
-            await session.rollback()
-            raise ValueError(f"Violación de integridad en la BD: {e}") from e
-
-        except OperationalError as e:
-            await session.rollback()
-            raise ValueError(f"Error de conexión a la BD: {e}") from e
-
-        except SQLAlchemyError as e:
-            await session.rollback()
-            raise ValueError(f"Error al ejecutar la consulta en la BD: {e}") from e
-
         except Exception:
             await session.rollback()
             raise

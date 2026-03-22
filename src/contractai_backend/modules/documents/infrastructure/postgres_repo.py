@@ -2,9 +2,11 @@
 
 from collections.abc import Sequence
 
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from ....core.exceptions.base import InternalServerError, ServiceUnavailableError
 from ....core.infrastructure.base import PostgresBaseRepository
 from ..application.repositories import DocumentRepository
 from ..domain import DocumentState, DocumentTable
@@ -18,12 +20,22 @@ class SQLModelDocumentRepository(PostgresBaseRepository[DocumentTable], Document
 
     async def get_by_client_name(self, client_name: str) -> Sequence[DocumentTable]:
         """Obtiene una lista de documentos por el nombre del cliente."""
-        query = select(self.model).where(self.model.client == client_name)
-        result = await self.session.exec(query)
-        return result.all()
+        try:
+            query = select(self.model).where(self.model.client == client_name)
+            result = await self.session.exec(statement=query)
+            return result.all()
+        except OperationalError as e:
+            raise ServiceUnavailableError("La base de datos relacional no esta disponible") from e
+        except SQLAlchemyError as e:
+            raise InternalServerError("Error al acceder a la base de datos relacional") from e
 
     async def get_active_documents(self) -> Sequence[DocumentTable]:
         """Obtiene una lista de documentos activos."""
-        query = select(self.model).where(self.model.state == DocumentState.ACTIVE)
-        result = await self.session.exec(query)
-        return result.all()
+        try:
+            query = select(self.model).where(self.model.state == DocumentState.ACTIVE)
+            result = await self.session.exec(statement=query)
+            return result.all()
+        except OperationalError as e:
+            raise ServiceUnavailableError("La base de datos relacional no esta disponible") from e
+        except SQLAlchemyError as e:
+            raise InternalServerError("Error al acceder a la base de datos relacional") from e
