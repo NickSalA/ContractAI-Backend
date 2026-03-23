@@ -2,6 +2,56 @@
 
 <!-- version list -->
 
+## v0.2.0 (2026-03-23)
+
+### Chores
+
+- Update dependencies and improve VSCode settings
+  ([`69e3d96`](https://github.com/NickSalA/ContractAI-Backend/commit/69e3d967ca42e27c101b2bdbfe3726de652bfe8a))
+
+### Features
+
+- Add persistence for chatbot
+  ([`b48a76c`](https://github.com/NickSalA/ContractAI-Backend/commit/b48a76c064554ec5e764d024d5fad94691445406))
+
+### Refactoring
+
+- Enhance chatbot model invocation and tool creation, improving async handling and dependency
+  injection
+  ([`9c4f0ad`](https://github.com/NickSalA/ContractAI-Backend/commit/9c4f0ad2b78ec20d05509d0b8b264aa41668941e))
+
+- Enhance error handling and response types across document services and repositories
+  ([`f8fa8d5`](https://github.com/NickSalA/ContractAI-Backend/commit/f8fa8d59c863e32ec933c3ba725aa3381941d240))
+
+- Enhance exception handling in document module, adding specific error classes for better clarity
+  and management
+  ([`a03f93a`](https://github.com/NickSalA/ContractAI-Backend/commit/a03f93a5dccbaf0440c655010b9b338013708d4c))
+
+- Introduce DocumentValidationError for improved document validation handling
+  ([`1524fc5`](https://github.com/NickSalA/ContractAI-Backend/commit/1524fc59ed127718e2e83807f5171883a0a9d555))
+
+- Reorganize database module structure, moving to infrastructure and updating imports
+  ([`01c4dad`](https://github.com/NickSalA/ContractAI-Backend/commit/01c4dad663bfe30926467e513cfb050396341044))
+
+- Reorganize llm_provider and vector_repo interfaces, update imports
+  ([`a684b12`](https://github.com/NickSalA/ContractAI-Backend/commit/a684b121fd05cd2bafc7143c47be761fca381760))
+
+- Restructure chatbot module, enhance dependency injection and improve LLM integration
+  ([`f148d30`](https://github.com/NickSalA/ContractAI-Backend/commit/f148d30e61c616d44f739a4688cd93b7debf47a4))
+
+- Update chatbot architecture by introducing ChatbotService, enhancing message processing and
+  dependency management
+  ([`656c89a`](https://github.com/NickSalA/ContractAI-Backend/commit/656c89a872282d6d639d3ead8d134fd870051b9e))
+
+- Update DocumentTable validation and improve test cases for currency handling
+  ([`f8ccc5c`](https://github.com/NickSalA/ContractAI-Backend/commit/f8ccc5caa406419cfa1032640126fabf544327e1))
+
+### Testing
+
+- Add unit tests for DocumentService, domain entities, and infrastructure components
+  ([`0833014`](https://github.com/NickSalA/ContractAI-Backend/commit/0833014ebf90610a851f48b936ea6480c81d3fe3))
+
+
 ## v0.1.6 (2026-03-20)
 
 ### Bug Fixes
