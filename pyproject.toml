@@ -35,6 +35,7 @@ build-backend = "uv_build"
 
 [tool.ruff]
 line-length = 150
+exclude = ["**/tests/**"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "D", "PL", "B", "W", "ARG", "RUF", "UP", "PTH"]

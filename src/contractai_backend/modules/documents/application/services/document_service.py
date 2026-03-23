@@ -40,15 +40,17 @@ class DocumentService:
         if not parsed_document:
             raise DocumentExtractionError()
 
-        new_document = DocumentTable(
-            name=data.name,
-            client=data.client,
-            type=data.type,
-            start_date=data.start_date,
-            end_date=data.end_date,
-            value=data.value,
-            currency=data.currency,
-            licenses=data.licenses,
+        new_document: DocumentTable = DocumentTable.model_validate(
+            obj={
+                "name": data.name,
+                "client": data.client,
+                "type": data.type,
+                "start_date": data.start_date,
+                "end_date": data.end_date,
+                "value": data.value,
+                "currency": data.currency,
+                "licenses": data.licenses,
+            }
         )
         save_doc: DocumentTable = await self.sql_repo.save(entity=new_document)
         document_id: int = save_doc.id

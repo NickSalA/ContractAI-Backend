@@ -59,4 +59,6 @@ class DocumentTable(BaseTable, table=True):
         """Valida que el código de moneda sea un string de 3 caracteres."""
         if len(currency) != CURRENCY_CODE_LENGTH:
             raise ValueError(f"Currency code must be a {CURRENCY_CODE_LENGTH}-letter string.")
-        return currency.upper()
+        if currency != currency.upper():
+            raise ValueError("Currency code must be uppercase.")
+        return currency
