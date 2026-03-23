@@ -5,12 +5,12 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, Response, UploadFile, status
+from pydantic import ValidationError
 
-from ....core.exceptions.base import ValidationError
 from ..application.repositories import DocumentRepository
 from ..application.services import DocumentService
 from ..domain.entities import DocumentTable
-from ..domain.exceptions import DocumentNotFoundError, InvalidDocumentFileError
+from ..domain.exceptions import DocumentNotFoundError, DocumentValidationError, InvalidDocumentFileError
 from .dependencies import get_document_repository, get_document_service
 from .schemas import CreateDocumentRequest, DocumentFileUrlResponse, DocumentResponse, FileRequest, UpdateDocumentRequest
 
@@ -28,7 +28,7 @@ async def create_document(file: UploadFile, service: DocumentServiceDep, documen
         doc_data = json.loads(document)
         doc_obj = CreateDocumentRequest(**doc_data)
     except (json.JSONDecodeError, ValidationError) as e:
-        raise ValidationError(f"Datos del documento invalidos: {e}") from e
+        raise DocumentValidationError(f"Datos del documento invalidos: {e}") from e
 
     if file.filename is None or file.content_type is None:
         raise InvalidDocumentFileError()
@@ -85,7 +85,7 @@ async def update_document(
         doc_data = json.loads(document)
         doc_obj = UpdateDocumentRequest(**doc_data)
     except (json.JSONDecodeError, ValidationError) as e:
-        raise ValidationError(f"Datos del documento invalidos: {e}") from e
+        raise DocumentValidationError(f"Datos del documento invalidos: {e}") from e
 
     file_data = None
     if file:

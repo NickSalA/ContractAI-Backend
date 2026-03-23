@@ -24,6 +24,13 @@ class InvalidDocumentFileError(ValidationError):
         super().__init__(message)
 
 
+class DocumentValidationError(ValidationError):
+    """Se lanza cuando los datos del documento no cumplen con las reglas de validación."""
+
+    def __init__(self, message: str = "Los datos del documento son inválidos."):
+        super().__init__(message)
+
+
 class DocumentExtractionError(BadGatewayError):
     """Se lanza cuando LlamaParse o el extractor fallan al procesar el archivo."""
 
