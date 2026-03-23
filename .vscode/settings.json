@@ -6,5 +6,10 @@
         "**/.venv": true,
         "**/.idea": true,
     },
-    "editor.codeLens": true
+    "editor.codeLens": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }
