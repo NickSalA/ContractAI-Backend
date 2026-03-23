@@ -6,10 +6,10 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ....core.exceptions.base import InternalServerError, ServiceUnavailableError
 from ....core.infrastructure.base import PostgresBaseRepository
 from ..application.repositories import DocumentRepository
 from ..domain import DocumentState, DocumentTable
+from ..domain.exceptions import DocumentDatabaseError, DocumentDatabaseUnavailableError
 
 
 class SQLModelDocumentRepository(PostgresBaseRepository[DocumentTable], DocumentRepository):
@@ -25,9 +25,9 @@ class SQLModelDocumentRepository(PostgresBaseRepository[DocumentTable], Document
             result = await self.session.exec(statement=query)
             return result.all()
         except OperationalError as e:
-            raise ServiceUnavailableError("La base de datos relacional no esta disponible") from e
+            raise DocumentDatabaseUnavailableError() from e
         except SQLAlchemyError as e:
-            raise InternalServerError("Error al acceder a la base de datos relacional") from e
+            raise DocumentDatabaseError() from e
 
     async def get_active_documents(self) -> Sequence[DocumentTable]:
         """Obtiene una lista de documentos activos."""
@@ -36,6 +36,6 @@ class SQLModelDocumentRepository(PostgresBaseRepository[DocumentTable], Document
             result = await self.session.exec(statement=query)
             return result.all()
         except OperationalError as e:
-            raise ServiceUnavailableError("La base de datos relacional no esta disponible") from e
+            raise DocumentDatabaseUnavailableError() from e
         except SQLAlchemyError as e:
-            raise InternalServerError("Error al acceder a la base de datos relacional") from e
+            raise DocumentDatabaseError() from e

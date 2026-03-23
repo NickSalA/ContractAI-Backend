@@ -4,6 +4,7 @@ from llama_index.core import Settings
 from llama_index.embeddings.openai import OpenAIEmbedding
 
 from ....shared.config import settings
+from ..domain.exceptions import DocumentVectorError
 
 
 # TODO: Cambiar en el futuro al modelo de embedding de Voyage AI una vez que esté disponible públicamente.
@@ -17,4 +18,4 @@ def configure_embedding() -> None:
             dimensions=1536,
         )
     except Exception as e:
-        raise ValueError(f"Error al configurar modelo de embeddings Voyage AI: {e}") from e
+        raise DocumentVectorError(f"Error al configurar modelo de embeddings: {e!s}") from e
