@@ -5,7 +5,7 @@ import random
 from langchain_core.messages import HumanMessage
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 
-from contractai_backend.modules.chatbot.application.repositories.llm_provider import ILLMProvider
+from contractai_backend.modules.chatbot.application.repositories.base_llm import ILLMProvider
 
 
 class LangGraphGeminiAdapter(ILLMProvider):

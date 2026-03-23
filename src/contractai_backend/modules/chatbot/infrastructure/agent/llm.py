@@ -16,7 +16,7 @@ def get_llm() -> ChatGoogleGenerativeAI:
     """
     try:
         return ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model=settings.GEMINI_MODEL_NAME,
             api_key=settings.GEMINI_API_KEY,
             temperature=settings.MODEL_TEMPERATURE,
             max_retries=0

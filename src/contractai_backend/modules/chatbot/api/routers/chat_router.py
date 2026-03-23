@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 
 from ...application.services.chatbot_service import ChatbotService
 from ..schemas import ChatRequest, ChatResponse
-from .dependencies import get_chatbot_service
+from contractai_backend.modules.chatbot.api.dependencies import get_chatbot_service
 
 router = APIRouter()
 

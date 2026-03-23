@@ -2,7 +2,7 @@
 
 from langchain_core.tools import tool
 
-from ...application.repositories.vector_repo import VectorRepository
+from ...application.repositories.base_vectorial import VectorRepository
 
 
 def build_bc_tool(repo: VectorRepository):
