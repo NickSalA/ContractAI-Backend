@@ -1,6 +1,8 @@
 """Database configuration and session management for ContractAI Backend."""
+
 import ssl
 from contextlib import asynccontextmanager
+from typing import Literal
 
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
@@ -12,18 +14,13 @@ DATABASE_URL: str = settings.DATABASE_URL
 
 connect_args = {}
 if DATABASE_URL and "localhost" not in DATABASE_URL:
-    ctx = ssl.create_default_context()
+    ctx: ssl.SSLContext = ssl.create_default_context()
     ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    connect_args = {"ssl": ctx}
+    ctx.verify_mode: Literal[ssl.VerifyMode.CERT_NONE] = ssl.CERT_NONE
+    connect_args: dict[str, ssl.SSLContext] = {"ssl": ctx}
 
-engine: AsyncEngine = create_async_engine(
-    url=DATABASE_URL,
-    echo=False,
-    future=True,
-    pool_pre_ping=True,
-    connect_args=connect_args
-)
+engine: AsyncEngine = create_async_engine(url=DATABASE_URL, echo=False, future=True, pool_pre_ping=True, connect_args=connect_args)
+
 
 async def get_session():
     """Proporciona una sesión de base de datos asíncrona."""
@@ -33,5 +30,6 @@ async def get_session():
         except Exception:
             await session.rollback()
             raise
+
 
 get_session_context = asynccontextmanager(get_session)

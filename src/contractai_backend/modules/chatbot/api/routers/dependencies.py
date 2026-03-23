@@ -1,7 +1,7 @@
 """Definición de dependencias para los endpoints del chatbot."""
 
 from .....shared.config import settings
-from .....shared.database.qdrant import get_aclient
+from .....shared.infrastructure.database import get_aclient
 from ...application.services.chatbot_service import ChatbotService
 from ...infrastructure.agent.adapter import LangGraphGeminiAdapter
 from ...infrastructure.agent.graph import ContractAgentGraph
@@ -12,10 +12,7 @@ from ...infrastructure.qdrant_repo import QdrantVectorRepository
 
 async def get_chatbot_service() -> ChatbotService:
     """Ensambla todas las capas de la aplicación de adentro hacia afuera."""
-    vector_repo = await QdrantVectorRepository.build(
-        collection_name=settings.INDEX_NAME,
-        client=await get_aclient()
-    )
+    vector_repo: QdrantVectorRepository = await QdrantVectorRepository.build(collection_name=settings.INDEX_NAME, client=await get_aclient())
 
     bc_tool = build_bc_tool(repo=vector_repo)
 
