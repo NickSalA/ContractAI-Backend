@@ -2,9 +2,8 @@
 
 from abc import ABC, abstractmethod
 
-
 class ILLMProvider(ABC):
     @abstractmethod
-    async def invoke(self, message: str, thread_id: int | None) -> tuple[str, int]:
-        """Invokes the LLM provider with the given message and optional thread ID."""
+    async def invoke(self, message: str, thread_id: int) -> tuple[str, int]:
+        """Invokes the LLM provider with the given message and mandatory thread ID."""
         pass
