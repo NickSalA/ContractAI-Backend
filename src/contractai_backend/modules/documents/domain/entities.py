@@ -1,9 +1,9 @@
 """Database model for documents with SQLModel."""
 
-from datetime import date
+from datetime import UTC, date, datetime
 
 from pydantic import ValidationInfo, field_validator
-from sqlalchemy import Column, Integer
+from sqlalchemy import Column, DateTime, Integer
 from sqlalchemy.dialects.postgresql import ENUM
 from sqlmodel import Field
 
@@ -16,6 +16,7 @@ CURRENCY_CODE_LENGTH = 3
 class DocumentTable(BaseTable, table=True):
     __tablename__: str = "documents"
 
+    organization_id: int = Field(sa_column=Column("organization_id", nullable=False, index=True))
     name: str = Field(sa_column=Column("name", nullable=False))
     client: str = Field(sa_column=Column("client", nullable=False))
     type: DocumentType = Field(sa_column=Column("type", ENUM(DocumentType, name="document_type"), nullable=False))
@@ -27,6 +28,8 @@ class DocumentTable(BaseTable, table=True):
     state: DocumentState = Field(default=DocumentState.ACTIVE, sa_column=Column("state", ENUM(DocumentState, name="document_state"), nullable=False))
     file_path: str | None = Field(default=None, sa_column=Column("file_path", nullable=True))
     file_name: str | None = Field(default=None, sa_column=Column("file_name", nullable=True))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC), sa_column=Column("created_at", DateTime(timezone=True), nullable=False))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC), sa_column=Column("updated_at", DateTime(timezone=True), nullable=False))
 
     @field_validator("end_date")
     @classmethod
