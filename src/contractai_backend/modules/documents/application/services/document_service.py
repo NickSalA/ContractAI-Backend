@@ -33,6 +33,7 @@ class DocumentService:
         self,
         data: CreateDocumentRequest,
         file_data: FileRequest,
+        organization_id: int,
         index_name: str = "contracts_index",
     ) -> DocumentTable:
         """Creates a new document, orchestrating SQL, Storage, and Vector DB."""
@@ -43,6 +44,7 @@ class DocumentService:
         new_document: DocumentTable = DocumentTable.model_validate(
             obj={
                 "name": data.name,
+                "organization_id": organization_id,
                 "client": data.client,
                 "type": data.type,
                 "start_date": data.start_date,
@@ -94,17 +96,20 @@ class DocumentService:
                 pass
             raise DocumentTransactionError(operation="create", details=str(object=e)) from e
 
-    async def get_documents(self) -> Sequence[DocumentTable]:
+    async def get_documents(self, organization_id: int) -> Sequence[DocumentTable]:
         """Retrieves all documents from the relational repository."""
-        return await self.sql_repo.get_all()
+        return await self.sql_repo.get_all(filters={"organization_id": organization_id})
 
-    async def get_document(self, id: int) -> DocumentTable | None:
+    async def get_document(self, id: int, organization_id: int) -> DocumentTable | None:
         """Retrieves a single document by ID from the relational repository."""
-        return await self.sql_repo.get_by_id(id)
+        doc = await self.sql_repo.get_by_id(id)
+        if doc is None or doc.organization_id != organization_id:
+            return None
+        return doc
 
-    async def delete_document(self, id: int, index_name: str = "contracts_index") -> bool:
+    async def delete_document(self, id: int, organization_id: int, index_name: str = "contracts_index") -> bool:
         """Deletes a document orchestrating SQL, VectorDB, and Storage."""
-        doc: DocumentTable | None = await self.sql_repo.get_by_id(id)
+        doc: DocumentTable | None = await self.get_document(id=id, organization_id=organization_id)
         if not doc:
             raise DocumentNotFoundError(document_id=id)
 
@@ -125,11 +130,12 @@ class DocumentService:
         self,
         id: int,
         data: UpdateDocumentRequest,
+        organization_id: int,
         file_data: FileRequest | None = None,
         index_name: str = "contracts_index",
     ) -> DocumentTable:
         """Updates an existing document orchestrating SQL, VectorDB, and Storage."""
-        doc: DocumentTable | None = await self.sql_repo.get_by_id(id)
+        doc: DocumentTable | None = await self.get_document(id=id, organization_id=organization_id)
         if not doc:
             raise DocumentNotFoundError(document_id=id)
 
@@ -185,9 +191,9 @@ class DocumentService:
 
             raise DocumentTransactionError(operation="update", details=str(object=e)) from e
 
-    async def get_document_signed_url(self, id: int, expires_in: int = 3600) -> str:
+    async def get_document_signed_url(self, id: int, organization_id: int, expires_in: int = 3600) -> str:
         """Returns a temporary signed URL for a stored document file."""
-        doc: DocumentTable | None = await self.sql_repo.get_by_id(id)
+        doc: DocumentTable | None = await self.get_document(id=id, organization_id=organization_id)
         if not doc:
             raise DocumentNotFoundError(document_id=id)
         if doc.file_path is None:
