@@ -1,6 +1,6 @@
 """Database model for documents with SQLModel."""
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from pydantic import ValidationInfo, field_validator
 from sqlalchemy import Column, DateTime, Integer
@@ -28,8 +28,8 @@ class DocumentTable(BaseTable, table=True):
     state: DocumentState = Field(default=DocumentState.ACTIVE, sa_column=Column("state", ENUM(DocumentState, name="document_state"), nullable=False))
     file_path: str | None = Field(default=None, sa_column=Column("file_path", nullable=True))
     file_name: str | None = Field(default=None, sa_column=Column("file_name", nullable=True))
-    created_at: datetime | None = Field(default=None, sa_column=Column("created_at", DateTime(timezone=True), nullable=False))
-    updated_at: datetime | None = Field(default=None, sa_column=Column("updated_at", DateTime(timezone=True), nullable=False))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC), sa_column=Column("created_at", DateTime(timezone=True), nullable=False))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC), sa_column=Column("updated_at", DateTime(timezone=True), nullable=False))
 
     @field_validator("end_date")
     @classmethod

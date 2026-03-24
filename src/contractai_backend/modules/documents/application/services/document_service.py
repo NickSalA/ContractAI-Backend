@@ -1,8 +1,10 @@
 """DocumentService: Orchestrates document creation and storage across repositories."""
 
 from collections.abc import Sequence
+from datetime import UTC, datetime
 
 from loguru import logger
+from pydantic import ValidationError as PydanticValidationError
 
 from ...api.schemas import CreateDocumentRequest, FileRequest, UpdateDocumentRequest
 from ...domain.entities import DocumentTable
@@ -11,6 +13,7 @@ from ...domain.exceptions import (
     DocumentFileMissingError,
     DocumentNotFoundError,
     DocumentTransactionError,
+    DocumentValidationError,
     InvalidDocumentFileError,
 )
 from ..repositories import DocumentExtractor, DocumentRepository, DocumentStorageRepository, VectorRepository
@@ -29,6 +32,20 @@ class DocumentService:
         self.extractor: DocumentExtractor = extractor
         self.storage_repo: DocumentStorageRepository = storage_repo
 
+    @staticmethod
+    def _build_validation_message(exc: PydanticValidationError) -> str:
+        messages = []
+        for error in exc.errors():
+            field = error.get("loc", ["documento"])[0]
+            messages.append(f"{field}: {error.get('msg')}")
+        return "; ".join(messages)
+
+    def _validate_document(self, payload: dict) -> DocumentTable:
+        try:
+            return DocumentTable.model_validate(obj=payload)
+        except PydanticValidationError as exc:
+            raise DocumentValidationError(self._build_validation_message(exc)) from exc
+
     async def create_document(
         self,
         data: CreateDocumentRequest,
@@ -41,8 +58,8 @@ class DocumentService:
         if not parsed_document:
             raise DocumentExtractionError()
 
-        new_document: DocumentTable = DocumentTable.model_validate(
-            obj={
+        new_document = self._validate_document(
+            {
                 "name": data.name,
                 "organization_id": organization_id,
                 "client": data.client,
@@ -142,8 +159,36 @@ class DocumentService:
         old_storage_path: str | None = doc.file_path
 
         update_data = data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(doc, field, value)
+        validated_doc = self._validate_document(
+            {
+                "id": doc.id,
+                "organization_id": doc.organization_id,
+                "name": update_data.get("name", doc.name),
+                "client": update_data.get("client", doc.client),
+                "type": update_data.get("type", doc.type),
+                "start_date": update_data.get("start_date", doc.start_date),
+                "end_date": update_data.get("end_date", doc.end_date),
+                "value": update_data.get("value", doc.value),
+                "currency": update_data.get("currency", doc.currency),
+                "licenses": update_data.get("licenses", doc.licenses),
+                "state": update_data.get("state", doc.state),
+                "file_path": doc.file_path,
+                "file_name": doc.file_name,
+                "created_at": doc.created_at,
+                "updated_at": datetime.now(UTC),
+            }
+        )
+
+        doc.name = validated_doc.name
+        doc.client = validated_doc.client
+        doc.type = validated_doc.type
+        doc.start_date = validated_doc.start_date
+        doc.end_date = validated_doc.end_date
+        doc.value = validated_doc.value
+        doc.currency = validated_doc.currency
+        doc.licenses = validated_doc.licenses
+        doc.state = validated_doc.state
+        doc.updated_at = validated_doc.updated_at
 
         if file_data is None:
             updated_doc: DocumentTable | None = await self.sql_repo.update(entity=doc)
@@ -169,6 +214,7 @@ class DocumentService:
 
             doc.file_path: str = new_storage_path
             doc.file_name: str = file_data.filename
+            doc.updated_at = datetime.now(UTC)
             updated_doc: DocumentTable | None = await self.sql_repo.update(entity=doc)
 
             if not updated_doc:
