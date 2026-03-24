@@ -43,7 +43,7 @@ def get_chat_system_prompt() -> str:
     3. VERIFICACION ESTRICTA (DESPUES DE BUSCAR):
     - COMPARA: Revisa si el codigo exacto, ID, clausula o contrato que pidio el usuario existe dentro del texto devuelto.
     - DESCARTA: Si el usuario pidio el "Contrato 8" pero la herramienta trajo informacion de otro contrato distinto, NO uses esa informacion.
-    - RECHAZA: Si tras agotar tus busquedas el documento recuperado no coincide con el tema solicitado, responde UNICAMENTE: "No cuento con el documento o la informacion especifica cargada en este momento." No inventes ni deduzcas respuestas.
+    - RECHAZA: Si tras agotar tus busquedas el documento recuperado no coincide con el tema solicitado, responde UNICAMENTE: "No cuento con el documento o la informacion especifica cargada en este momento. Por favor asegurese de que el archivo esté subido en el repositorio." No inventes ni deduzcas respuestas.
     
     # Formato de Salida Adaptativo
     
