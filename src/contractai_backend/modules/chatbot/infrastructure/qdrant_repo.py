@@ -10,11 +10,9 @@ from .agent.retriever import LlamaIndexWindowRetriever
 
 class QdrantVectorRepository(VectorRepository):
     def __init__(self, collection_name: str, client: AsyncQdrantClient, index: VectorStoreIndex):
-
         self.client = client
         self.collection_name = collection_name
         self.index = index
-        self.retriever = LlamaIndexWindowRetriever(index=self.index, top_k=5)
 
     @classmethod
     async def build(cls, client: AsyncQdrantClient, collection_name: str) -> "QdrantVectorRepository":
@@ -24,9 +22,11 @@ class QdrantVectorRepository(VectorRepository):
         return cls(collection_name=collection_name, client=client, index=index)
 
     async def search_documents(self, query: str, limit: int = 5) -> str:
-        """Busca documentos relevantes en Qdrant usando el retriever de LlamaIndex y devuelve un string formateado con los resultados."""
-        self.retriever.top_k = limit
-        docs = await self.retriever.ainvoke(query)
+        """Busca documentos relevantes en Qdrant usando el retriever de LlamaIndex y devuelve un string formateado."""
+
+        # Instanciamos el retriever de forma local para evitar condiciones de carrera en concurrencia asíncrona
+        local_retriever = LlamaIndexWindowRetriever(index=self.index, top_k=limit)
+        docs = await local_retriever.ainvoke(query)
 
         if not docs:
             return "No se encontraron documentos relevantes para tu consulta."
