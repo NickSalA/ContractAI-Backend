@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     SUPABASE_SECRET_KEY: str = Field(default=...)
     SUPABASE_STORAGE_BUCKET: str = Field(default="contracts")
 
+    GOOGLE_CLIENT_ID: str = Field(default=...)
+    GOOGLE_CLIENT_SECRET: str = Field(default=...)
+    GOOGLE_REDIRECT_URI: str = Field(default=...)
+
     @property
     def DATABASE_URL(self) -> str:  # noqa: N802
         """Recupera la URL de la base de datos desde Key Vault o variable de entorno."""

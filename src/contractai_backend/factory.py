@@ -12,8 +12,9 @@ from .core.exceptions.base import AppError
 from .modules.chatbot.api.routers import chat_router, conversation_router
 from .modules.chatbot.infrastructure.agent.checkpointer import init_checkpointer
 from .modules.documents.api.routers import router as documents_router
-from .modules.documents.infrastructure import configure_embedding
 from .modules.users.api.routers import auth_router, users_router
+from contractai_backend.modules.integrations.api.routers import router as integrations_router
+from .modules.documents.infrastructure import configure_embedding
 from .shared.api.error_handlers import app_error_handler, global_exception_handler, http_exception_handler, validation_exception_handler
 from .shared.api.middlewares import LoguruMiddleware
 from .shared.config import settings
@@ -36,11 +37,12 @@ def create() -> FastAPI:
 
     app = FastAPI(title=settings.PROJECT_NAME, version=__version__, lifespan=lifespan)
 
-    app.include_router(router=documents_router, prefix="/documents", tags=["documents"])
+    app.include_router(router=documents_router, prefix="/documents", tags=["Documentos"])
     app.include_router(router=auth_router, prefix="/login", tags=["Autenticación"])
     app.include_router(router=users_router, prefix="/user", tags=["Usuarios"])
     app.include_router(router=chat_router, prefix="/chatbot", tags=["Chatbot"])
     app.include_router(router=conversation_router, prefix="/conversations", tags=["Conversaciones"])
+    app.include_router(router=integrations_router, prefix="/integrations", tags=["Integraciones"])
 
     app.add_middleware(
         middleware_class=CORSMiddleware,  # ty:ignore[invalid-argument-type]
