@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.3 (2026-03-24)
+
+### Bug Fixes
+
+- Add suggestion when agent don't find a file on prompt
+  ([`b33527c`](https://github.com/NickSalA/ContractAI-Backend/commit/b33527cf00f078e62a9bcffc4a9bb3670710ad6c))
+
+
 ## v0.2.2 (2026-03-24)
 
 

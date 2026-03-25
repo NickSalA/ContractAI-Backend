@@ -36,6 +36,7 @@ class UpdateDocumentRequest(BaseModel):
     end_date: date | None = None
     value: float | None = None
     currency: str | None = None
+    licenses: int | None = None
     state: DocumentState | None = None
 
 
@@ -54,6 +55,7 @@ class DocumentFileUrlResponse(BaseModel):
     """Response schema with a temporary URL to access a document file."""
 
     url: str = Field(..., description="Signed URL for temporary access")
+
 
 class FileRequest(BaseModel):
     """Request schema for file uploads."""
