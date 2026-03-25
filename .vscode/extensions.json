@@ -1,13 +1,13 @@
 {
   "recommendations": [
     "ms-python.python",
-    "ms-python.vscode-pylance",
     "charliermarsh.ruff",
     "tamasfe.even-better-toml",
     "usernamehw.errorlens",
+    "astral-sh.ty"
   ],
   "unwantedRecommendations": [
-    "ms-pyright.pyright", 
+    "ms-pyright.pyright",
     "ms-python.flake8",
     "ms-python.black-formatter"
   ]
