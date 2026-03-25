@@ -14,13 +14,14 @@ class LlamaIndexWindowRetriever(BaseRetriever):
     index: Any
     top_k: int = 5
 
-    def _get_relevant_documents(
-        self, query: str, *, _run_manager: CallbackManagerForRetrieverRun | None = None
-    ) -> list[LCDocument]:
+    def _get_relevant_documents(self, query: str, *, run_manager: CallbackManagerForRetrieverRun | None = None) -> list[LCDocument]:
         raise NotImplementedError("Este retriever está diseñado solo para uso asíncrono (ainvoke).")
 
     async def _aget_relevant_documents(
-        self, query: str, *, _run_manager: AsyncCallbackManagerForRetrieverRun | None = None
+        self,
+        query: str,
+        *,
+        run_manager: AsyncCallbackManagerForRetrieverRun | None = None,  # noqa: ARG002
     ) -> list[LCDocument]:
         retriever = self.index.as_retriever(similarity_top_k=self.top_k)
         nodes: list[NodeWithScore] = await retriever.aretrieve(query)
@@ -30,11 +31,6 @@ class LlamaIndexWindowRetriever(BaseRetriever):
 
         langchain_docs = []
         for node in new_nodes:
-            langchain_docs.append(
-                LCDocument(
-                    page_content=node.text,
-                    metadata=node.metadata
-                )
-            )
+            langchain_docs.append(LCDocument(page_content=node.text, metadata=node.metadata))
 
         return langchain_docs

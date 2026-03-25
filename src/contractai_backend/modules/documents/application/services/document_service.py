@@ -54,10 +54,6 @@ class DocumentService:
         index_name: str = "contracts_index",
     ) -> DocumentTable:
         """Creates a new document, orchestrating SQL, Storage, and Vector DB."""
-        parsed_document = await self.extractor.extract(file=file_data.content, filename=file_data.filename)
-        if not parsed_document:
-            raise DocumentExtractionError()
-
         new_document = self._validate_document(
             {
                 "name": data.name,
@@ -71,7 +67,16 @@ class DocumentService:
                 "licenses": data.licenses,
             }
         )
+
+        parsed_document = await self.extractor.extract(file=file_data.content, filename=file_data.filename)
+        if not parsed_document:
+            raise DocumentExtractionError()
+
         save_doc: DocumentTable = await self.sql_repo.save(entity=new_document)
+
+        if not save_doc.id:
+            raise DocumentTransactionError(operation="create", details="Failed to save document in SQL, no ID returned")
+
         document_id: int = save_doc.id
 
         storage_path = None

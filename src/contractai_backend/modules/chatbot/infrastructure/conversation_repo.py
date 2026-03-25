@@ -1,34 +1,40 @@
-from datetime import datetime, timezone
+"""Repository for managing conversations in the database."""
+
+from collections.abc import Sequence
+from datetime import UTC, datetime
+
+from sqlmodel import desc, select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import select
 
 from contractai_backend.core.infrastructure.base import PostgresBaseRepository
-from contractai_backend.modules.chatbot.domain.entities import ConversationTable
 from contractai_backend.modules.chatbot.application.repositories.base_conversation import IConversationRepository
+from contractai_backend.modules.chatbot.domain.entities import ConversationTable, Message
 
 
 class ConversationRepository(PostgresBaseRepository[ConversationTable], IConversationRepository):
     def __init__(self, session: AsyncSession):
         super().__init__(model=ConversationTable, session=session)
 
-    async def update_messages(self, conversation_id: int, new_messages: list[dict]) -> ConversationTable | None:
-        db_obj = await self.get(id=conversation_id)
+    async def update_messages(self, conversation_id: int, new_message: list[Message]) -> ConversationTable | None:
+        """Actualiza el contenido de una conversación existente agregando nuevos mensajes."""
+        db_obj: ConversationTable | None = await self.get_by_id(id=conversation_id)
         if not db_obj:
             return None
 
-        current_content = list(db_obj.content) if db_obj.content else []
-        current_content.extend(new_messages)
+        current_content: list[Message] = list(db_obj.content)
+        current_content.extend(new_message)
 
-        db_obj.content = current_content
-        db_obj.updated_at = datetime.now(timezone.utc)
+        db_obj.content: list[Message] = current_content
+        db_obj.updated_at: datetime = datetime.now(tz=UTC)
 
-        self.session.add(db_obj)
+        self.session.add(instance=db_obj)
         await self.session.commit()
-        await self.session.refresh(db_obj)
+        await self.session.refresh(instance=db_obj)
 
         return db_obj
 
-    async def get_by_user(self, user_id: int) -> list[ConversationTable]:
-        query = select(self.model).where(self.model.user_id == user_id).order_by(self.model.created_at.desc())
-        result = await self.session.execute(query)
-        return list(result.scalars().all())
+    async def get_by_user(self, user_id: int) -> Sequence[ConversationTable]:
+        """Obtiene una lista de conversaciones asociadas a un usuario específico, ordenadas por fecha de creación descendente."""
+        query = select(self.model).where(self.model.user_id == user_id).order_by(desc(column=self.model.created_at))
+        result = await self.session.exec(statement=query)
+        return result.all()

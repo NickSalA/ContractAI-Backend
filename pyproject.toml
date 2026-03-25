@@ -27,6 +27,7 @@ dependencies = [
     "psycopg-pool>=3.3.0",
     "langgraph-checkpoint-postgres>=3.0.5",
     "psycopg-binary>=3.3.3",
+    "langchain-community>=0.1.0",
 ]
 
 [project.scripts]

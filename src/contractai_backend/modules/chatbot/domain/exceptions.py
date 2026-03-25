@@ -1,11 +1,14 @@
-from contractai_backend.core.exceptions.base import (
+""""Custom exceptions for chatbot module."""
+
+from ....core.exceptions.base import (
     BadGatewayError,
+    GatewayTimeoutError,
     InternalServerError,
+    NotFoundError,
     ServiceUnavailableError,
     ValidationError,
-    GatewayTimeoutError,
-    NotFoundError
 )
+
 
 class ChatbotValidationError(ValidationError):
     def __init__(self, message: str = "El mensaje enviado es inválido o está vacío."):

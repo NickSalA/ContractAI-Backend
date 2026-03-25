@@ -1,22 +1,20 @@
+"""Módulo de entidades para la gestión de usuarios."""
+
 from datetime import datetime
-from enum import StrEnum
 from uuid import UUID
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
+
+from ....core.domain.base import BaseTable
+from .value_objs import UserRole
 
 
-class UserRole(StrEnum):
-    ADMIN = "admin"
-    WORKER = "worker"
-
-
-class UserTable(SQLModel, table=True):
+class UserTable(BaseTable, table=True):
     __tablename__ = "users"
 
-    id: int | None = Field(default=None, sa_column=Column("id", Integer, primary_key=True, autoincrement=True))
-    organization_id: int = Field(nullable=False)
-    supabase_user_id: UUID | None = Field(default=None, nullable=True)
+    organization_id: int = Field(sa_column=Column("organization_id", Integer, nullable=False, index=True))
+    supabase_user_id: UUID | None = Field(default=None, sa_column=Column("supabase_user_id", nullable=True, unique=True))
     email: str = Field(sa_column=Column("email", String(255), nullable=False, unique=True, index=True))
     full_name: str | None = Field(default=None, sa_column=Column("full_name", String(255), nullable=True))
     avatar_url: str | None = Field(default=None, sa_column=Column("avatar_url", Text, nullable=True))

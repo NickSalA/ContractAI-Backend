@@ -1,71 +1,54 @@
+"""Módulo de Dependencias para el API de Usuarios."""
+
 from typing import Annotated
 
 from fastapi import Depends, Header
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from contractai_backend.core.exceptions.base import ForbiddenError, UnauthorizedError
-from contractai_backend.modules.users.domain.entities import UserTable
-from contractai_backend.modules.users.infrastructure.jwt_service import SupabaseAuthService
-from contractai_backend.modules.users.infrastructure.supabase_repo import SQLModelUserRepository
-from contractai_backend.shared.infrastructure.database import get_session
+from ....core.exceptions.base import UnauthorizedError
+from ....shared.infrastructure.database import get_session
+from ...users.application.repositories.user_repo import IUserRepository
+from ..application.repositories.token_service import IAuthRepository
+from ..application.services.auth_service import AuthService
+from ..domain.entities import UserTable
+from ..infrastructure.jwt_service import SupabaseAuthService
+from ..infrastructure.postgres_repo import SQLModelUserRepository
 
-SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
-
-def get_user_repository(session: SessionDep) -> SQLModelUserRepository:
+async def get_user_repository(session: Annotated[AsyncSession, Depends(get_session)]) -> IUserRepository:
+    """Inyecta la implementación concreta del repositorio de usuarios."""
     return SQLModelUserRepository(session=session)
 
 
-def get_auth_service() -> SupabaseAuthService:
+def get_identity_provider() -> IAuthRepository:
+    """Inyecta el proveedor de identidad (Supabase)."""
     return SupabaseAuthService()
 
 
-UserRepositoryDep = Annotated[SQLModelUserRepository, Depends(get_user_repository)]
-AuthServiceDep = Annotated[SupabaseAuthService, Depends(get_auth_service)]
+def get_auth_application_service(
+    identity_provider: Annotated[IAuthRepository, Depends(get_identity_provider)], user_repo: Annotated[IUserRepository, Depends(get_user_repository)]
+) -> AuthService:
+    """Inyecta el servicio de aplicación que orquesta la autenticación."""
+    return AuthService(jwt_service=identity_provider, repo=user_repo)
 
 
 def extract_bearer_token(authorization: str | None = Header(default=None)) -> str:
+    """Extrae el token del header Authorization."""
     if not authorization:
         raise UnauthorizedError("Falta el token de autenticación")
 
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
-        raise UnauthorizedError("El encabezado Authorization debe usar el esquema Bearer")
+        raise UnauthorizedError("Formato de token inválido")
     return token
 
 
-BearerTokenDep = Annotated[str, Depends(extract_bearer_token)]
-
-
 async def get_current_user(
-    token: BearerTokenDep,
-    auth_service: AuthServiceDep,
-    repository: UserRepositoryDep,
+    token: Annotated[str, Depends(extract_bearer_token)],
+    auth_service: Annotated[AuthService, Depends(get_auth_application_service)],
 ) -> UserTable:
-    auth_user = await auth_service.get_authenticated_user(token)
-    email = auth_user["email"].strip().lower()
-    supabase_user_id = auth_service.parse_user_id(auth_user["id"])
-    user_metadata = auth_user.get("user_metadata") or {}
-
-    user = await repository.get_by_email(email)
-    if user is None or not user.is_active:
-        raise ForbiddenError("Acceso denegado para este usuario")
-
-    if user.supabase_user_id and user.supabase_user_id != supabase_user_id:
-        raise ForbiddenError("La cuenta autenticada no coincide con el usuario registrado")
-
-    updates: dict[str, object] = {}
-    if user.supabase_user_id is None:
-        updates["supabase_user_id"] = supabase_user_id
-    if user_metadata.get("full_name") and user.full_name != user_metadata["full_name"]:
-        updates["full_name"] = user_metadata["full_name"]
-    if user_metadata.get("avatar_url") and user.avatar_url != user_metadata["avatar_url"]:
-        updates["avatar_url"] = user_metadata["avatar_url"]
-
-    if updates:
-        user = await repository.update_fields(user, **updates)
-
-    return user
+    """Obtiene el usuario autenticado delegando toda la lógica de validación, sincronización y persistencia al servicio de aplicación."""
+    return await auth_service.authenticate_user(token)
 
 
 CurrentUserDep = Annotated[UserTable, Depends(get_current_user)]

@@ -7,8 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, Response, UploadFile, status
 from pydantic import ValidationError
 
-from contractai_backend.modules.users.api.dependencies import CurrentUserDep
-
+from ...users.api.dependencies import CurrentUserDep
 from ..application.repositories import DocumentRepository
 from ..application.services import DocumentService
 from ..domain.entities import DocumentTable

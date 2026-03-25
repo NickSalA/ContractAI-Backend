@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 
+
 class ILLMProvider(ABC):
     @abstractmethod
     async def invoke(self, message: str, thread_id: int) -> tuple[str, int]:

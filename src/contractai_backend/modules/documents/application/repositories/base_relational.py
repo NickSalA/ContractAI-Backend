@@ -3,8 +3,8 @@
 from abc import abstractmethod
 from collections.abc import Sequence
 
-from contractai_backend.core.application.base import BaseRepository
-from contractai_backend.modules.documents.domain.entities import DocumentTable
+from .....core.application.base import BaseRepository
+from ...domain.entities import DocumentTable
 
 
 class DocumentRepository(BaseRepository[DocumentTable]):
