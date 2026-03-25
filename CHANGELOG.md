@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.4.0 (2026-03-25)
+
+### Features
+
+- Add integration module
+  ([`0937b44`](https://github.com/NickSalA/ContractAI-Backend/commit/0937b4472e6dbe3d330690c93e2c0d49bdcad14b))
+
+### Refactoring
+
+- Enhance chatbot and user management with improved dependency injection and error handling
+  ([`b0f1f1b`](https://github.com/NickSalA/ContractAI-Backend/commit/b0f1f1bab05e05728708924e4970c6b34eb076b7))
+
+- Update API schemas and router definitions for improved clarity and structure
+  ([`1a089ae`](https://github.com/NickSalA/ContractAI-Backend/commit/1a089aea5b53e218856cdc4780296f1f0f7533d8))
+
+
 ## v0.3.1 (2026-03-25)
 
 
