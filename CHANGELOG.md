@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.4.2 (2026-03-25)
+
+### Bug Fixes
+
+- **checkpointer**: Mi pene
+  ([`b2487bf`](https://github.com/NickSalA/ContractAI-Backend/commit/b2487bf3dd19c48261470f5e754c77c3052f5806))
+
+
 ## v0.4.1 (2026-03-25)
 
 
