@@ -1,6 +1,8 @@
 from langchain_core.messages import HumanMessage
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 from contractai_backend.modules.chatbot.application.repositories.base_llm import ILLMProvider
+from contractai_backend.modules.chatbot.domain.exceptions import LLMQuotaExceededError, LLMExecutionError
+
 
 class LangGraphGeminiAdapter(ILLMProvider):
     def __init__(self, compiled_graph: CompiledStateGraph):
@@ -9,7 +11,12 @@ class LangGraphGeminiAdapter(ILLMProvider):
     async def invoke(self, message: str, thread_id: int) -> tuple[str, int]:
         config: RunnableConfig = {"configurable": {"thread_id": str(thread_id)}}
 
-        result = await self.graph.ainvoke({"messages": [HumanMessage(content=message)]}, config=config)
+        try:
+            result = await self.graph.ainvoke({"messages": [HumanMessage(content=message)]}, config=config)
+        except Exception as e:
+            if "429" in str(e) or "quota" in str(e).lower():
+                raise LLMQuotaExceededError()
+            raise LLMExecutionError(message=f"Error en la malla de LangGraph: {str(e)}")
 
         last_message = result["messages"][-1]
         raw_content = last_message.content

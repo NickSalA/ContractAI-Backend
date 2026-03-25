@@ -1,10 +1,16 @@
-from psycopg.rows import dict_row
+from psycopg import AsyncConnection
+from psycopg.rows import DictRow, dict_row
 from psycopg_pool import AsyncConnectionPool
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from fastapi import Depends
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from contractai_backend.shared.config import settings
 from contractai_backend.shared.infrastructure.database.qdrant import get_aclient
+from contractai_backend.shared.infrastructure.database.postgres import get_session
 from contractai_backend.modules.chatbot.application.services.chatbot_service import ChatbotService
+from contractai_backend.modules.chatbot.application.services.conversation_service import ConversationService
+from contractai_backend.modules.chatbot.infrastructure.conversation_repo import ConversationRepository
 from contractai_backend.modules.chatbot.infrastructure.agent.adapter import LangGraphGeminiAdapter
 from contractai_backend.modules.chatbot.infrastructure.agent.graph import ContractAgentGraph
 from contractai_backend.modules.chatbot.infrastructure.agent.llm import get_llm
@@ -13,6 +19,11 @@ from contractai_backend.modules.chatbot.infrastructure.qdrant_repo import Qdrant
 
 _chatbot_service_instance: ChatbotService | None = None
 _db_pool: AsyncConnectionPool | None = None
+
+
+def get_conversation_service(session: AsyncSession = Depends(get_session)) -> ConversationService:
+    repo = ConversationRepository(session=session)
+    return ConversationService(repository=repo)
 
 
 async def init_chatbot_system() -> ChatbotService:

@@ -1,12 +1,36 @@
-"""Schemas para la API del chatbot."""
-
-from pydantic import BaseModel, Field
-
+from datetime import datetime
+from typing import Any
+from pydantic import BaseModel, ConfigDict, Field
 
 class ChatRequest(BaseModel):
-    message: str = Field(..., description="The user's message to the chatbot.", examples=["Hola, ¿cómo estás?"])
-    thread_id: int | None = Field(default=None, description="ID de la conversación.", examples=[12])
+    message: str = Field(..., description="The user's message to the chatbot.")
+    thread_id: int | None = Field(default=None, description="ID de la conversación.")
 
 class ChatResponse(BaseModel):
-    response: str = Field(..., description="The chatbot's response to the user's message.", examples=["¡Hola! Estoy bien..."])
-    thread_id: int = Field(..., description="ID de la conversación.", examples=[12])
+    response: str = Field(..., description="The chatbot's response to the user's message.")
+    thread_id: int = Field(..., description="ID de la conversación.")
+
+class ConversationCreate(BaseModel):
+    title: str
+    organization_id: int
+    user_id: int
+
+class ConversationRead(BaseModel):
+    id: int
+    title: str
+    organization_id: int
+    user_id: int
+    content: list[dict[str, Any]]
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ConversationList(BaseModel):
+    id: int
+    title: str
+    organization_id: int
+    user_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

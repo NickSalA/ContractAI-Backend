@@ -26,6 +26,7 @@ dependencies = [
     "logtail-python>=0.3.4",
     "psycopg-pool>=3.3.0",
     "langgraph-checkpoint-postgres>=3.0.5",
+    "psycopg-binary>=3.3.3",
 ]
 
 [project.scripts]

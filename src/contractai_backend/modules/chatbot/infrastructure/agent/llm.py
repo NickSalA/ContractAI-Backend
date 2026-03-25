@@ -2,6 +2,7 @@
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+from ...domain.exceptions import LLMInitializationError
 from .....shared.config import settings
 
 
@@ -22,6 +23,4 @@ def get_llm() -> ChatGoogleGenerativeAI:
             max_retries=0
         )
     except Exception as e:
-        raise ValueError(
-            f"Error al inicializar el modelo Gemini: {e}"
-        ) from e
+        raise LLMInitializationError(message=f"Fallo en credenciales o modelo: {str(e)}")
