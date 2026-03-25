@@ -1,63 +1,41 @@
-from psycopg import AsyncConnection
-from psycopg.rows import DictRow, dict_row
-from psycopg_pool import AsyncConnectionPool
+"""Este módulo define las dependencias para el chatbot, utilizando FastAPI's Depends para inyectar los servicios necesarios en los endpoints."""
+
+from typing import Annotated
+
+from fastapi import Depends, Request
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from contractai_backend.shared.config import settings
-from contractai_backend.shared.infrastructure.database.qdrant import get_aclient
-from contractai_backend.shared.infrastructure.database.postgres import get_session
-from contractai_backend.modules.chatbot.application.services.chatbot_service import ChatbotService
-from contractai_backend.modules.chatbot.application.services.conversation_service import ConversationService
-from contractai_backend.modules.chatbot.infrastructure.conversation_repo import ConversationRepository
-from contractai_backend.modules.chatbot.infrastructure.agent.adapter import LangGraphGeminiAdapter
-from contractai_backend.modules.chatbot.infrastructure.agent.graph import ContractAgentGraph
-from contractai_backend.modules.chatbot.infrastructure.agent.llm import get_llm
-from contractai_backend.modules.chatbot.infrastructure.agent.tools import build_bc_tool
-from contractai_backend.modules.chatbot.infrastructure.qdrant_repo import QdrantVectorRepository
-
-_chatbot_service_instance: ChatbotService | None = None
-_db_pool: AsyncConnectionPool | None = None
+from ....shared.config import settings
+from ....shared.infrastructure.database import get_aclient, get_session
+from ..application.repositories.base_llm import ILLMProvider
+from ..application.services import ChatbotService, ConversationService
+from ..infrastructure import ConversationRepository, QdrantVectorRepository
+from ..infrastructure.agent import ContractAgentGraph, LangGraphGeminiAdapter, build_bc_tool, get_llm
 
 
-def get_conversation_service(session: AsyncSession = Depends(get_session)) -> ConversationService:
+async def get_conversation_service(session: Annotated[AsyncSession, Depends(get_session)]) -> ConversationService:
+    """Construye el servicio de conversación, inyectando el repositorio necesario."""
     repo = ConversationRepository(session=session)
     return ConversationService(repository=repo)
 
 
-async def init_chatbot_system() -> ChatbotService:
-    global _db_pool
+async def get_llm_provider(request: Request) -> ILLMProvider:
+    """Extrae el pool del estado de la app y construye el adaptador LLM."""
+    pool = request.app.state.pool
+    checkpointer = AsyncPostgresSaver(conn=pool)
 
-    vector_repo = await QdrantVectorRepository.build(
-        collection_name=settings.INDEX_NAME,
-        client=await get_aclient()
-    )
-
+    vector_repo: QdrantVectorRepository = await QdrantVectorRepository.build(collection_name=settings.INDEX_NAME, client=await get_aclient())
     bc_tool = build_bc_tool(repo=vector_repo)
-
-    _db_pool = AsyncConnectionPool(
-        conninfo=settings.CONN_STRING,
-        open=False,
-        kwargs={"prepare_threshold": 0, "row_factory": dict_row, "autocommit": True}
-    )
-
-    await _db_pool.open()
-
-    checkpointer = AsyncPostgresSaver(_db_pool)
-    await checkpointer.setup()
 
     graph_builder = ContractAgentGraph(tools=[bc_tool], llm=get_llm())
     compiled_graph = graph_builder.build_graph(checkpointer=checkpointer)
 
-    llm_provider = LangGraphGeminiAdapter(compiled_graph=compiled_graph)
-
-    return ChatbotService(llm_provider=llm_provider)
+    return LangGraphGeminiAdapter(compiled_graph=compiled_graph)
 
 
-async def get_chatbot_service() -> ChatbotService:
-    global _chatbot_service_instance
-    if _chatbot_service_instance is None:
-        _chatbot_service_instance = await init_chatbot_system()
-
-    return _chatbot_service_instance
+async def get_chatbot_service(
+    llm_provider: Annotated[ILLMProvider, Depends(get_llm_provider)], conv_service: Annotated[ConversationService, Depends(get_conversation_service)]
+) -> ChatbotService:
+    """Construye el servicio principal del chatbot, inyectando el LLM y el servicio de conversaciones."""
+    return ChatbotService(llm_provider=llm_provider, conv_service=conv_service)

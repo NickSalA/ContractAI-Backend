@@ -10,6 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .core.exceptions.base import AppError
 from .modules.chatbot.api.routers import chat_router, conversation_router
+from .modules.chatbot.infrastructure.agent.checkpointer import init_checkpointer
 from .modules.documents.api.routers import router as documents_router
 from .modules.documents.infrastructure import configure_embedding
 from .modules.users.api.routers import auth_router, users_router
@@ -27,7 +28,10 @@ def create() -> FastAPI:
     async def lifespan(_: FastAPI):
         """Lifespan context manager for startup and shutdown events."""
         configure_embedding()
+        pool = await init_checkpointer()
+        app.state.pool = pool
         yield
+        await app.state.pool.close()
         # Aquí puedes agregar cualquier lógica de limpieza que necesites
 
     app = FastAPI(title=settings.PROJECT_NAME, version=__version__, lifespan=lifespan)

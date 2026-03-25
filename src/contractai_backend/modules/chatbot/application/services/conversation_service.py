@@ -7,7 +7,7 @@ from ..repositories.base_conversation import IConversationRepository
 
 class ConversationService:
     def __init__(self, repository: IConversationRepository):
-        self.repository = repository
+        self.repository: IConversationRepository = repository
 
     async def create_conversation(self, data: ConversationCreate) -> ConversationTable:
         """Crea una nueva conversación en la base de datos a partir de los datos proporcionados."""

@@ -19,7 +19,6 @@ class Message(BaseModel):
 class ConversationTable(BaseTable, table=True):
     __tablename__: str = "conversations"
 
-    id: int | None = Field(default=None, primary_key=True)
     organization_id: int = Field(sa_column=Column("organization_id", Integer, nullable=False))
     user_id: int = Field(sa_column=Column("user_id", Integer, nullable=False))
     title: str = Field(sa_column=Column("title", String, nullable=False))

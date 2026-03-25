@@ -3,6 +3,7 @@
 from collections.abc import Sequence
 from typing import Any
 
+from loguru import logger
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from sqlmodel import asc, select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -45,12 +46,15 @@ class PostgresBaseRepository[T: BaseTable](BaseRepository[T]):
             return obj
         except IntegrityError as e:
             await self.session.rollback()
+            logger.debug(f"IntegrityError al guardar {self.model.__name__}: {e}")
             raise ConflictError("Conflicto al crear el registro en la base de datos relacional") from e
         except OperationalError as e:
             await self.session.rollback()
+            logger.debug(f"OperationalError al guardar {self.model.__name__}: {e}")
             raise ServiceUnavailableError("La base de datos relacional no esta disponible") from e
         except SQLAlchemyError as e:
             await self.session.rollback()
+            logger.debug(f"SQLAlchemyError al guardar {self.model.__name__}: {e}")
             raise InternalServerError("Error al acceder a la base de datos relacional") from e
 
     async def get_all(self, filters: dict[str, Any] | None = None) -> Sequence[T]:

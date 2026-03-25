@@ -1,8 +1,11 @@
 """Reposity of vectors for Qdrant, using LlamaIndex to manage the index and retrieval logic."""
-from langchain_community.retrievers.llama_index import LlamaIndexRetriever
-from langchain_core.documents.base import Document
-from llama_index.core import VectorStoreIndex
+
+from typing import Any
+
+from llama_index.core import QueryBundle, VectorStoreIndex
 from llama_index.core.base.base_retriever import BaseRetriever
+from llama_index.core.postprocessor import MetadataReplacementPostProcessor
+from llama_index.core.schema import NodeWithScore
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import AsyncQdrantClient
 
@@ -30,15 +33,16 @@ class QdrantVectorRepository(VectorRepository):
         """Busca documentos relevantes en Qdrant usando el retriever de LlamaIndex y devuelve un string formateado."""
         try:
             llama_retriever: BaseRetriever = self.index.as_retriever(similarity_top_k=limit)
-            local_retriever = LlamaIndexRetriever(index=llama_retriever)
-            docs: list[Document] = await local_retriever.ainvoke(query)
+            nodes: list[NodeWithScore] = await llama_retriever.aretrieve(str_or_query_bundle=query)
+            processor = MetadataReplacementPostProcessor(target_metadata_key="window")
+            new_nodes: list[NodeWithScore] = processor.postprocess_nodes(nodes, query_bundle=QueryBundle(query))
         except Exception as e:
             raise VectorSearchError(message=f"Fallo en el retriever de LlamaIndex: {e!s}") from e
 
-        contextos_formateados = []
-        for doc in docs:
-            filename = doc.metadata.get("filename", "Desconocido")
-            texto = doc.page_content
+        contextos_formateados: list[str] = []
+        for node in new_nodes:
+            filename: Any = node.metadata.get("filename", "Desconocido")
+            texto: str = node.text
             contextos_formateados.append(f"[Fuente: {filename}]\n{texto}")
 
         return "\n\n---\n\n".join(contextos_formateados)

@@ -1,9 +1,10 @@
 """Módulo de entidades para la gestión de usuarios."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
+from sqlalchemy.dialects.postgresql import ENUM
 from sqlmodel import Field
 
 from ....core.domain.base import BaseTable
@@ -18,7 +19,11 @@ class UserTable(BaseTable, table=True):
     email: str = Field(sa_column=Column("email", String(255), nullable=False, unique=True, index=True))
     full_name: str | None = Field(default=None, sa_column=Column("full_name", String(255), nullable=True))
     avatar_url: str | None = Field(default=None, sa_column=Column("avatar_url", Text, nullable=True))
-    role: UserRole = Field(sa_column=Column("role", String(6), nullable=False, default=UserRole.WORKER))
+    role: UserRole = Field(default=UserRole.WORKER, sa_column=Column("role", ENUM(UserRole, name="user_role"), nullable=False))
     is_active: bool = Field(default=True, sa_column=Column("is_active", Boolean, nullable=False, default=True))
-    created_at: datetime | None = Field(default=None, sa_column=Column("created_at", DateTime(timezone=True), nullable=False))
-    updated_at: datetime | None = Field(default=None, sa_column=Column("updated_at", DateTime(timezone=True), nullable=False))
+    created_at: datetime | None = Field(
+        default_factory=lambda: datetime.now(UTC), sa_column=Column("created_at", DateTime(timezone=True), nullable=False)
+    )
+    updated_at: datetime | None = Field(
+        default_factory=lambda: datetime.now(UTC), sa_column=Column("updated_at", DateTime(timezone=True), nullable=False)
+    )

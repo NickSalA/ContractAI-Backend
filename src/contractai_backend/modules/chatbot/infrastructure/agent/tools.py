@@ -1,10 +1,15 @@
+"""Tools personalizados para el agente de chatbot, integrando la búsqueda en la base de conocimientos contractual."""
+
 from langchain_core.tools import tool
+
 from ...application.repositories.base_vectorial import VectorRepository
 
+
 def build_bc_tool(repo: VectorRepository):
+    """Construye una herramienta para el agente, que utiliza el repositorio vectorial para buscar información en la base de conocimientos."""
 
     @tool(
-        "bc_tool",
+        name_or_callable="bc_tool",
         description=(
             "Usala obligatoriamente para buscar informacion en contratos corporativos, "
             "anexos, acuerdos comerciales, SLAs y documentos legales. Devuelve fragmentos "
