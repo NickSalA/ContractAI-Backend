@@ -2,11 +2,13 @@
 
 from typing import Annotated
 
+import httpx
 from fastapi import Depends
 from qdrant_client import AsyncQdrantClient, QdrantClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ....shared.infrastructure.database import get_aclient, get_client, get_session
+from ....shared.infrastructure.http import get_http_client
 from ..application.repositories import DocumentExtractor, DocumentRepository, DocumentStorageRepository, VectorRepository
 from ..application.services import DocumentService
 from ..infrastructure import LlamaIndexQdrantRepository, LlamaParseExtractor, SQLModelDocumentRepository, SupabaseStorageRepository
@@ -31,9 +33,9 @@ async def get_extractor() -> DocumentExtractor:
     return LlamaParseExtractor()
 
 
-async def get_storage_repository() -> DocumentStorageRepository:
+async def get_storage_repository(client: Annotated[httpx.AsyncClient, Depends(get_http_client)]) -> DocumentStorageRepository:
     """Construye un repositorio de almacenamiento Supabase."""
-    return SupabaseStorageRepository()
+    return SupabaseStorageRepository(client=client)
 
 
 DocumentRepoDep = Annotated[DocumentRepository, Depends(get_document_repository)]

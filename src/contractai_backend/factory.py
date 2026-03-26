@@ -18,6 +18,7 @@ from .modules.documents.infrastructure import configure_embedding
 from .shared.api.error_handlers import app_error_handler, global_exception_handler, http_exception_handler, validation_exception_handler
 from .shared.api.middlewares import LoguruMiddleware
 from .shared.config import settings
+from .shared.infrastructure.http import build_http_client
 
 __version__: str = get_version(distribution_name="contractai-backend")
 
@@ -29,9 +30,11 @@ def create() -> FastAPI:
     async def lifespan(_: FastAPI):
         """Lifespan context manager for startup and shutdown events."""
         configure_embedding()
+        app.state.http_client = build_http_client()
         pool = await init_checkpointer()
         app.state.pool = pool
         yield
+        await app.state.http_client.aclose()
         await app.state.pool.close()
         # Aquí puedes agregar cualquier lógica de limpieza que necesites
 

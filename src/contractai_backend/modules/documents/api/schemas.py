@@ -1,29 +1,95 @@
 """Schemas for document-related API requests and responses."""
 
-from datetime import date
+from datetime import date, datetime
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
-from ....modules.documents.domain import DocumentState, DocumentType
+from ....modules.documents.domain import CurrencyType, DocumentState, DocumentType
+
+
+class DocumentServiceItemBase(BaseModel):
+    """Base schema for a service associated to a document."""
+
+    service_id: int = Field(..., gt=0, description="Unique identifier of the related service")
+    description: str | None = Field(default=None, description="Optional free-text detail for this service within the document")
+    value: float = Field(..., ge=0, description="Amount assigned to the related service")
+    currency: CurrencyType = Field(..., description="Currency used for the related service amount")
+    start_date: date = Field(..., description="Start date for the service period inside the contract")
+    end_date: date = Field(..., description="End date for the service period inside the contract")
+
+    @field_validator("end_date")
+    @classmethod
+    def validate_end_date(cls, end_date: date, info: ValidationInfo) -> date:
+        start_date = info.data.get("start_date")
+        if start_date and end_date < start_date:
+            raise ValueError("End date cannot be earlier than start date.")
+        return end_date
+
+
+class DocumentServiceItemRequest(DocumentServiceItemBase):
+    """Request schema for document-service associations."""
+
+
+class DocumentServiceItemResponse(DocumentServiceItemBase):
+    """Response schema for document-service associations."""
+
+    id: int = Field(..., description="Unique identifier of the document-service association")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ServiceCatalogItemResponse(BaseModel):
+    """Schema for service catalog items available to the frontend."""
+
+    id: int = Field(..., description="Unique identifier of the service")
+    name: str = Field(..., description="Display name of the service")
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DocumentBase(BaseModel):
-    """Base schema for document-related requests."""
+    """Base schema for document-related requests and responses."""
 
     name: str = Field(..., description="Name of the document")
     client: str = Field(..., description="Client associated with the document")
-    type: DocumentType = Field(..., description="Type of the document (e.g., LICENSES, SERVICES)")
+    type: DocumentType = Field(..., description="Type of the document")
     start_date: date = Field(..., description="Start date of the document period")
     end_date: date = Field(..., description="End date of the document period")
-    value: float = Field(..., description="Monetary value of the document")
-    currency: str = Field(..., description="Currency code for the document value (e.g., PEN)")
-    licenses: int = Field(..., description="Number of licenses covered by the document")
+    form_data: dict[str, Any] = Field(..., description="Structured JSON payload stored in the form_data column")
+
+    @field_validator("name", "client")
+    @classmethod
+    def validate_text_fields(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Field cannot be empty.")
+        return cleaned
 
 
 class CreateDocumentRequest(DocumentBase):
     """Request schema for creating a new document."""
-    form_data: dict | None = None
-    pass
+
+    state: DocumentState = Field(default=DocumentState.ACTIVE, description="Initial document state")
+    service_items: list[DocumentServiceItemRequest] = Field(
+        default_factory=list,
+        description="Services associated to the document through documents_services",
+    )
+
+    @field_validator("service_items")
+    @classmethod
+    def validate_unique_service_ids(cls, service_items: list[DocumentServiceItemRequest]) -> list[DocumentServiceItemRequest]:
+        service_ids = [item.service_id for item in service_items]
+        if len(service_ids) != len(set(service_ids)):
+            raise ValueError("service_items contains duplicated service_id values.")
+        return service_items
+
+    @field_validator("form_data")
+    @classmethod
+    def remove_legacy_license_key(cls, form_data: dict[str, Any]) -> dict[str, Any]:
+        cleaned_form_data = dict(form_data)
+        cleaned_form_data.pop("licenses", None)
+        return cleaned_form_data
 
 
 class UpdateDocumentRequest(BaseModel):
@@ -34,19 +100,53 @@ class UpdateDocumentRequest(BaseModel):
     type: DocumentType | None = None
     start_date: date | None = None
     end_date: date | None = None
-    value: float | None = None
-    currency: str | None = None
-    licenses: int | None = None
+    form_data: dict[str, Any] | None = None
     state: DocumentState | None = None
+    service_items: list[DocumentServiceItemRequest] | None = None
+
+    @field_validator("name", "client")
+    @classmethod
+    def validate_optional_text_fields(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Field cannot be empty.")
+        return cleaned
+
+    @field_validator("service_items")
+    @classmethod
+    def validate_optional_unique_service_ids(cls, service_items: list[DocumentServiceItemRequest] | None) -> list[DocumentServiceItemRequest] | None:
+        if service_items is None:
+            return None
+        service_ids = [item.service_id for item in service_items]
+        if len(service_ids) != len(set(service_ids)):
+            raise ValueError("service_items contains duplicated service_id values.")
+        return service_items
+
+    @field_validator("form_data")
+    @classmethod
+    def clean_optional_form_data(cls, form_data: dict[str, Any] | None) -> dict[str, Any] | None:
+        if form_data is None:
+            return None
+        cleaned_form_data = dict(form_data)
+        cleaned_form_data.pop("licenses", None)
+        return cleaned_form_data
 
 
 class DocumentResponse(DocumentBase):
     """Response schema for document data."""
 
     id: int = Field(..., description="Unique identifier of the document")
-    state: DocumentState = Field(..., description="Current state of the document (e.g., ACTIVE, EXPIRED)")
+    state: DocumentState = Field(..., description="Current state of the document")
     file_path: str | None = Field(default=None, description="Storage path of the associated file")
     file_name: str | None = Field(default=None, description="Original name of the associated file")
+    service_items: list[DocumentServiceItemResponse] = Field(
+        default_factory=list,
+        description="Services associated to this document",
+    )
+    created_at: datetime = Field(..., description="Document creation timestamp")
+    updated_at: datetime = Field(..., description="Last document update timestamp")
 
     model_config = ConfigDict(from_attributes=True)
 

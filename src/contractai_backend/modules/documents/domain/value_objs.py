@@ -1,15 +1,27 @@
 """Value objects for the Documents domain."""
+
 from enum import StrEnum
 
 
 class DocumentType(StrEnum):
-    """Enum-like class to represent document types."""
-    LICENSES = "LICENCIAS"
-    SERVICES = "SERVICIOS"
-    SUPPORT = "SOPORTE"
+    """Tipos de documento permitidos por la base de datos."""
+
+    SERVICES = "SERVICES"
+    LICENSES = "LICENSES"
+    SUPPORT = "SUPPORT"
+
 
 class DocumentState(StrEnum):
-    """Enum-like class to represent document states."""
-    ACTIVE = "ACTIVO"
-    EXPIRED = "EXPIRADO"
-    PENDING = "POR_VENCER"
+    """Estados de documento permitidos por la base de datos."""
+
+    ACTIVE = "ACTIVE"
+    PENDING = "PENDING"
+    EXPIRED = "EXPIRED"
+
+
+class CurrencyType(StrEnum):
+    """Monedas permitidas para los servicios asociados a un documento."""
+
+    PEN = "PEN"
+    USD = "USD"
+    EUR = "EUR"

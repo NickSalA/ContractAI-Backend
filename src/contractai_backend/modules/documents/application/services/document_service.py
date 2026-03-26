@@ -1,13 +1,14 @@
 """DocumentService: Orchestrates document creation and storage across repositories."""
 
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from typing import Any
 
 from loguru import logger
 from pydantic import ValidationError as PydanticValidationError
 
-from ...api.schemas import CreateDocumentRequest, FileRequest, UpdateDocumentRequest
-from ...domain.entities import DocumentTable
+from ...api.schemas import CreateDocumentRequest, DocumentServiceItemRequest, FileRequest, UpdateDocumentRequest
+from ...domain.entities import DocumentServiceTable, DocumentTable, ServiceTable
 from ...domain.exceptions import (
     DocumentExtractionError,
     DocumentFileMissingError,
@@ -46,6 +47,64 @@ class DocumentService:
         except PydanticValidationError as exc:
             raise DocumentValidationError(self._build_validation_message(exc)) from exc
 
+    @staticmethod
+    def _build_document_service_entities(document_id: int, service_items: Sequence[DocumentServiceItemRequest]) -> list[DocumentServiceTable]:
+        return [
+            DocumentServiceTable(
+                document_id=document_id,
+                service_id=item.service_id,
+                description=item.description,
+                value=item.value,
+                currency=item.currency,
+                start_date=item.start_date,
+                end_date=item.end_date,
+            )
+            for item in service_items
+        ]
+
+    @staticmethod
+    def _build_form_data_payload(base_form_data: dict[str, Any], service_items: Sequence[DocumentServiceItemRequest]) -> dict[str, Any]:
+        payload = dict(base_form_data)
+        payload.pop("licenses", None)
+
+        if service_items:
+            payload["value"] = sum(item.value for item in service_items)
+            payload["currency"] = service_items[0].currency.value
+
+        return payload
+
+    @staticmethod
+    def _validate_service_periods(
+        document_start_date: date,
+        document_end_date: date,
+        service_items: Sequence[DocumentServiceItemRequest],
+    ) -> None:
+        for item in service_items:
+            if item.start_date < document_start_date or item.end_date > document_end_date:
+                raise DocumentValidationError(message=(f"El servicio {item.service_id} debe tener fechas dentro del rango del contrato."))
+
+    @staticmethod
+    def _validate_service_currency_alignment(service_items: Sequence[DocumentServiceItemRequest]) -> None:
+        currencies = {item.currency for item in service_items}
+        if len(currencies) > 1:
+            raise DocumentValidationError(message="Todos los servicios asociados al contrato deben usar la misma moneda.")
+
+    async def _validate_requested_services(self, organization_id: int, service_items: Sequence[DocumentServiceItemRequest]) -> None:
+        if not service_items:
+            return
+
+        requested_ids = [item.service_id for item in service_items]
+        existing_services = await self.sql_repo.get_services_by_ids(organization_id=organization_id, service_ids=requested_ids)
+        existing_ids = {service.id for service in existing_services if service.id is not None}
+        missing_ids = sorted(set(requested_ids) - existing_ids)
+
+        if missing_ids:
+            raise DocumentValidationError(message=f"Los servicios con IDs {missing_ids} no existen o no pertenecen a la organización actual.")
+
+    async def list_services(self, organization_id: int) -> Sequence[ServiceTable]:
+        """Returns the service catalog for the current organization."""
+        return await self.sql_repo.get_services(organization_id=organization_id)
+
     async def create_document(
         self,
         data: CreateDocumentRequest,
@@ -54,6 +113,16 @@ class DocumentService:
         index_name: str = "contracts_index",
     ) -> DocumentTable:
         """Creates a new document, orchestrating SQL, Storage, and Vector DB."""
+        await self._validate_requested_services(organization_id=organization_id, service_items=data.service_items)
+        self._validate_service_currency_alignment(service_items=data.service_items)
+        self._validate_service_periods(
+            document_start_date=data.start_date,
+            document_end_date=data.end_date,
+            service_items=data.service_items,
+        )
+
+        normalized_form_data = self._build_form_data_payload(base_form_data=data.form_data, service_items=data.service_items)
+
         new_document = self._validate_document(
             {
                 "name": data.name,
@@ -62,9 +131,8 @@ class DocumentService:
                 "type": data.type,
                 "start_date": data.start_date,
                 "end_date": data.end_date,
-                "value": data.value,
-                "currency": data.currency,
-                "licenses": data.licenses,
+                "form_data": normalized_form_data,
+                "state": data.state,
             }
         )
 
@@ -78,24 +146,27 @@ class DocumentService:
             raise DocumentTransactionError(operation="create", details="Failed to save document in SQL, no ID returned")
 
         document_id: int = save_doc.id
+        service_entities = self._build_document_service_entities(document_id=document_id, service_items=data.service_items)
 
         storage_path = None
         vectors_added = False
 
         try:
-            storage_path: str = await self.storage_repo.upload_file(
-                document_id=document_id, file=file_data.content, filename=file_data.filename, content_type=file_data.content_type
+            await self.sql_repo.replace_document_services(document_id=document_id, service_items=service_entities)
+
+            storage_path = await self.storage_repo.upload_file(
+                document_id=document_id,
+                file=file_data.content,
+                filename=file_data.filename,
+                content_type=file_data.content_type,
             )
 
             await self.vector_repo.add_vectors(index_name=index_name, document_id=document_id, chunks=parsed_document)
             vectors_added = True
 
-            save_doc.file_path: str = storage_path
-            save_doc.file_name: str = file_data.filename
-            updated_saved_doc: DocumentTable | None = await self.sql_repo.update(entity=save_doc)
-
-            if not updated_saved_doc:
-                raise DocumentTransactionError(operation="create", details=f"Failed to update document with id {document_id} in SQL after creation")
+            save_doc.file_path = storage_path
+            save_doc.file_name = file_data.filename
+            updated_saved_doc: DocumentTable = await self.sql_repo.update(entity=save_doc)
 
             return updated_saved_doc
 
@@ -116,6 +187,7 @@ class DocumentService:
                 await self.sql_repo.delete(id=document_id)
             except Exception:
                 pass
+
             raise DocumentTransactionError(operation="create", details=str(object=e)) from e
 
     async def get_documents(self, organization_id: int) -> Sequence[DocumentTable]:
@@ -161,9 +233,32 @@ class DocumentService:
         if not doc:
             raise DocumentNotFoundError(document_id=id)
 
-        old_storage_path: str | None = doc.file_path
-
         update_data = data.model_dump(exclude_unset=True)
+        service_items_provided = "service_items" in update_data
+        requested_service_items = data.service_items or []
+
+        if service_items_provided:
+            await self._validate_requested_services(
+                organization_id=organization_id,
+                service_items=requested_service_items,
+            )
+            self._validate_service_currency_alignment(service_items=requested_service_items)
+
+        final_start_date = update_data.get("start_date", doc.start_date)
+        final_end_date = update_data.get("end_date", doc.end_date)
+        final_form_data = update_data.get("form_data", doc.form_data)
+
+        if service_items_provided:
+            self._validate_service_periods(
+                document_start_date=final_start_date,
+                document_end_date=final_end_date,
+                service_items=requested_service_items,
+            )
+            final_form_data = self._build_form_data_payload(
+                base_form_data=final_form_data,
+                service_items=requested_service_items,
+            )
+
         validated_doc = self._validate_document(
             {
                 "id": doc.id,
@@ -171,11 +266,9 @@ class DocumentService:
                 "name": update_data.get("name", doc.name),
                 "client": update_data.get("client", doc.client),
                 "type": update_data.get("type", doc.type),
-                "start_date": update_data.get("start_date", doc.start_date),
-                "end_date": update_data.get("end_date", doc.end_date),
-                "value": update_data.get("value", doc.value),
-                "currency": update_data.get("currency", doc.currency),
-                "licenses": update_data.get("licenses", doc.licenses),
+                "start_date": final_start_date,
+                "end_date": final_end_date,
+                "form_data": final_form_data,
                 "state": update_data.get("state", doc.state),
                 "file_path": doc.file_path,
                 "file_name": doc.file_name,
@@ -189,16 +282,18 @@ class DocumentService:
         doc.type = validated_doc.type
         doc.start_date = validated_doc.start_date
         doc.end_date = validated_doc.end_date
-        doc.value = validated_doc.value
-        doc.currency = validated_doc.currency
-        doc.licenses = validated_doc.licenses
+        doc.form_data = validated_doc.form_data
         doc.state = validated_doc.state
         doc.updated_at = validated_doc.updated_at
 
         if file_data is None:
-            updated_doc: DocumentTable | None = await self.sql_repo.update(entity=doc)
-            if not updated_doc:
-                raise DocumentTransactionError(operation="update", details=f"Failed to update document with id {id} in SQL without file changes")
+            if service_items_provided and doc.id is not None:
+                service_entities = self._build_document_service_entities(
+                    document_id=doc.id,
+                    service_items=requested_service_items,
+                )
+                await self.sql_repo.replace_document_services(document_id=doc.id, service_items=service_entities)
+            updated_doc = await self.sql_repo.update(entity=doc)
             return updated_doc
 
         if not file_data.filename or file_data.content_type is None:
@@ -208,22 +303,31 @@ class DocumentService:
         if not parsed_document:
             raise DocumentExtractionError()
 
+        old_storage_path = doc.file_path
         new_storage_path = None
 
         try:
-            new_storage_path: str = await self.storage_repo.upload_file(
-                document_id=id, file=file_data.content, filename=file_data.filename, content_type=file_data.content_type
+            new_storage_path = await self.storage_repo.upload_file(
+                document_id=id,
+                file=file_data.content,
+                filename=file_data.filename,
+                content_type=file_data.content_type,
             )
 
             await self.vector_repo.add_vectors(index_name=index_name, document_id=id, chunks=parsed_document)
 
-            doc.file_path: str = new_storage_path
-            doc.file_name: str = file_data.filename
+            doc.file_path = new_storage_path
+            doc.file_name = file_data.filename
             doc.updated_at = datetime.now(UTC)
-            updated_doc: DocumentTable | None = await self.sql_repo.update(entity=doc)
 
-            if not updated_doc:
-                raise DocumentTransactionError(operation="update", details=f"Failed to update document with id {id} in SQL")
+            if service_items_provided and doc.id is not None:
+                service_entities = self._build_document_service_entities(
+                    document_id=doc.id,
+                    service_items=requested_service_items,
+                )
+                await self.sql_repo.replace_document_services(document_id=doc.id, service_items=service_entities)
+
+            updated_doc = await self.sql_repo.update(entity=doc)
 
             if old_storage_path and old_storage_path != new_storage_path:
                 try:

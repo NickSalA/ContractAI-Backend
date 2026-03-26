@@ -2,10 +2,12 @@
 
 from typing import Annotated
 
+import httpx
 from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ....shared.infrastructure.database import get_session
+from ....shared.infrastructure.http import get_http_client
 from ...users.application.repositories.user_repo import IUserRepository
 from ..application.repositories.token_service import IAuthRepository
 from ..application.services.auth_service import AuthService
@@ -18,9 +20,9 @@ async def get_user_repository(session: Annotated[AsyncSession, Depends(get_sessi
     return SQLModelUserRepository(session=session)
 
 
-def get_identity_provider() -> IAuthRepository:
+def get_identity_provider(client: Annotated[httpx.AsyncClient, Depends(get_http_client)]) -> IAuthRepository:
     """Inyecta el proveedor de identidad (Supabase)."""
-    return SupabaseAuthService()
+    return SupabaseAuthService(client=client)
 
 
 def get_auth_application_service(
