@@ -22,7 +22,7 @@ class DocumentBase(BaseModel):
 
 class CreateDocumentRequest(DocumentBase):
     """Request schema for creating a new document."""
-
+    form_data: dict | None = None
     pass
 
 
