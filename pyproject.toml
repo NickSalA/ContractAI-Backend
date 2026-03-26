@@ -1,6 +1,6 @@
 [project]
 name = "contractai-backend"
-version = "0.4.1"
+version = "0.6.0"
 description = "Backend para ContractIA - Gestión de Contratos"
 readme = "README.md"
 requires-python = "==3.12.*"
@@ -18,7 +18,7 @@ dependencies = [
     "langchain-google-genai>=4.2.1",
     "sqlmodel>=0.0.37",
     "asyncpg>=0.31.0",
-    "llama-parse>=0.6.94",
+    "llama-cloud>=1.0",
     "qdrant-client>=1.17.1",
     "llama-index-vector-stores-qdrant>=0.10.0",
     "llama-index-embeddings-openai>=0.6.0",
@@ -38,6 +38,9 @@ start = "contractai_backend.main:main"
 [build-system]
 requires = ["uv_build>=0.10.9,<0.11.0"]
 build-backend = "uv_build"
+
+[tool.ty.src]
+exclude = ["**/tests/**"]
 
 [tool.ruff]
 line-length = 150

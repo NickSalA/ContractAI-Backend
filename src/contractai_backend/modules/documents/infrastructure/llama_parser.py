@@ -3,7 +3,9 @@
 import tempfile
 from pathlib import Path
 
-from llama_parse import LlamaParse, ResultType
+from llama_cloud import AsyncLlamaCloud
+from llama_cloud.types.file_create_response import FileCreateResponse
+from llama_cloud.types.parsing_get_response import ParsingGetResponse
 
 from ....shared.config import settings
 from ..application.repositories import DocumentExtractor
@@ -14,11 +16,9 @@ class LlamaParseExtractor(DocumentExtractor):
     def __init__(
         self,
     ):
-        self.parser = LlamaParse(
+        self.parser = AsyncLlamaCloud(
             api_key=settings.LLAMA_PARSE_API_KEY,
-            result_type=ResultType.MD,
-            verbose=False,
-            language="es",
+            max_retries=3,
         )
 
     async def extract(self, file: bytes, filename: str) -> list:
@@ -31,11 +31,30 @@ class LlamaParseExtractor(DocumentExtractor):
             temp_file.flush()
             temp_path: str = temp_file.name
         try:
-            documents = await self.parser.aload_data(file_path=temp_path)
+            documents: FileCreateResponse = await self.parser.files.create(file=Path(temp_path), purpose="parse")
 
-            for doc in documents:
-                doc.metadata["filename"] = filename
-            return documents
+            result: ParsingGetResponse = await self.parser.parsing.parse(
+                file_id=documents.id,
+                tier="agentic",
+                version="latest",
+                agentic_options={
+                    "custom_prompt": (
+                        "Este es un contrato laboral peruano oficial. "
+                        "Es OBLIGATORIO mantener todos los puntos suspensivos (........)"
+                        "ya que son campos que el usuario debe llenar. No los elimines ni los limpies. "
+                        "Conserva las negritas de los títulos y las cláusulas originales."
+                    )
+                },
+                processing_options={"ocr_parameters": {"languages": ["es"]}},
+                expand=["markdown"],
+            )
+            if not result.markdown or not result.markdown.pages:
+                raise DocumentExtractionError(f"No se pudo extraer contenido de '{filename}' con LlamaParse.")
+
+            return [
+                {"content": page.markdown, "metadata": {"filename": filename, "page_number": i + 1, "total_pages": len(result.markdown.pages)}}
+                for i, page in enumerate(iterable=result.markdown.pages)
+            ]
 
         except Exception as e:
             raise DocumentExtractionError(f"El servicio fallo al procesar '{filename}': {e!s}") from e
