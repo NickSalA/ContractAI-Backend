@@ -27,9 +27,9 @@ def get_chat_system_prompt() -> str:
     1. DICCIONARIO DE BUSQUEDA (ANTES DE BUSCAR):
     Transforma siempre las palabras del usuario a la nomenclatura contractual oficial para mejorar la precision de la herramienta:
     - "Doc", "documento", "acuerdo" -> Usa la palabra "Contrato"
-    - "Mantenimiento" -> Usa la categoria "SOPORTE"
-    - "Servicio" -> Usa la categoria "SERVICIOS"
-    - "Licencia de software" -> Usa la categoria "LICENCIAS"
+    - "Mantenimiento" -> Usa la categoria "SUPPORT"
+    - "Servicio" -> Usa la categoria "SERVICES"
+    - "Licencia de software" -> Usa la categoria "LICENSES"
     - "Caduca", "vence", "vencimiento" -> Usa la frase "fecha de fin" y "vigencia"
     - "Renovacion automatica", "prorroga" -> Usa la frase "clausula de renovacion"
     - "Multa", "sancion" -> Usa la frase "clausula de penalidades"

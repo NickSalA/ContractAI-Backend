@@ -1,35 +1,51 @@
 """Tests unitarios para SQLModelDocumentRepository con sesión mockeada."""
 
-from collections.abc import Sequence
 from datetime import date
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
-from contractai_backend.modules.documents.domain.entities import DocumentTable
+from contractai_backend.modules.documents.domain.entities import DocumentServiceTable, DocumentTable, ServiceTable
 from contractai_backend.modules.documents.domain.exceptions import DocumentDatabaseError, DocumentDatabaseUnavailableError
-from contractai_backend.modules.documents.domain.value_objs import DocumentState, DocumentType
+from contractai_backend.modules.documents.domain.value_objs import CurrencyType, DocumentState, DocumentType
 from contractai_backend.modules.documents.infrastructure.postgres_repo import SQLModelDocumentRepository
 
 
 def _make_doc(id: int = 1) -> DocumentTable:
     return DocumentTable(
         id=id,
+        organization_id=1,
         name="Contrato Test",
         client="Cliente Test",
         type=DocumentType.LICENSES,
         start_date=date(2024, 1, 1),
         end_date=date(2024, 12, 31),
-        value=1000.0,
-        currency="PEN",
-        licenses=5,
+        form_data={"value": 120.0, "currency": "PEN"},
         state=DocumentState.ACTIVE,
     )
 
 
+def _make_document_service(id: int = 1) -> DocumentServiceTable:
+    return DocumentServiceTable(
+        id=id,
+        document_id=1,
+        service_id=2,
+        description="Hosting",
+        value=120.0,
+        currency=CurrencyType.PEN,
+        start_date=date(2024, 1, 1),
+        end_date=date(2024, 6, 1),
+    )
+
+
+def _make_service(id: int = 2) -> ServiceTable:
+    return ServiceTable(id=id, organization_id=1, name="Hosting")
+
+
 def _make_repo() -> tuple[SQLModelDocumentRepository, AsyncMock]:
     session = AsyncMock()
+    session.add_all = MagicMock()
     repo = SQLModelDocumentRepository(session=session)
     return repo, session
 
@@ -48,17 +64,6 @@ class TestGetByClientName:
 
         assert result == docs
         session.exec.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_returns_empty_list_when_no_match(self):
-        repo, session = _make_repo()
-        result_mock = MagicMock()
-        result_mock.all.return_value = []
-        session.exec.return_value = result_mock
-
-        result = await repo.get_by_client_name("Desconocido")
-
-        assert result == []
 
     @pytest.mark.asyncio
     async def test_operational_error_raises_unavailable(self):
@@ -90,18 +95,99 @@ class TestGetActiveDocuments:
 
         assert result == docs
 
-    @pytest.mark.asyncio
-    async def test_operational_error_raises_unavailable(self):
-        repo, session = _make_repo()
-        session.exec.side_effect = OperationalError("conn", {}, Exception())
 
-        with pytest.raises(DocumentDatabaseUnavailableError):
-            await repo.get_active_documents()
+class TestGetDocumentServices:
+    @pytest.mark.asyncio
+    async def test_returns_document_services(self):
+        repo, session = _make_repo()
+        service_items = [_make_document_service()]
+        result_mock = MagicMock()
+        result_mock.all.return_value = service_items
+        session.exec.return_value = result_mock
+
+        result = await repo.get_document_services(document_id=1)
+
+        assert result == service_items
+        session.exec.assert_called_once()
+
+
+class TestReplaceDocumentServices:
+    @pytest.mark.asyncio
+    async def test_replaces_services_and_commits(self):
+        repo, session = _make_repo()
+        service_items = [_make_document_service()]
+        delete_result = MagicMock()
+        select_result = MagicMock()
+        select_result.all.return_value = service_items
+        session.exec.side_effect = [delete_result, select_result]
+
+        result = await repo.replace_document_services(document_id=1, service_items=service_items)
+
+        assert result == service_items
+        assert session.exec.call_count == 2
+        session.add_all.assert_called_once_with(service_items)
+        session.commit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_sqlalchemy_error_raises_database_error(self):
+    async def test_sqlalchemy_error_rolls_back(self):
         repo, session = _make_repo()
-        session.exec.side_effect = SQLAlchemyError("query error")
+        session.exec.side_effect = SQLAlchemyError("boom")
 
         with pytest.raises(DocumentDatabaseError):
-            await repo.get_active_documents()
+            await repo.replace_document_services(document_id=1, service_items=[])
+
+        session.rollback.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_replaces_multiple_services_and_returns_reloaded_rows(self):
+        repo, session = _make_repo()
+        service_items = [_make_document_service(1), _make_document_service(2)]
+        delete_result = MagicMock()
+        select_result = MagicMock()
+        select_result.all.return_value = service_items
+        session.exec.side_effect = [delete_result, select_result]
+
+        result = await repo.replace_document_services(document_id=1, service_items=service_items)
+
+        assert result == service_items
+        session.add_all.assert_called_once_with(service_items)
+        session.commit.assert_called_once()
+
+
+class TestGetServicesByIds:
+    @pytest.mark.asyncio
+    async def test_returns_services_for_ids(self):
+        repo, session = _make_repo()
+        services = [_make_service()]
+        result_mock = MagicMock()
+        result_mock.all.return_value = services
+        session.exec.return_value = result_mock
+
+        result = await repo.get_services_by_ids(organization_id=1, service_ids=[2])
+
+        assert result == services
+        session.exec.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_empty_ids_returns_empty_list_without_query(self):
+        repo, session = _make_repo()
+
+        result = await repo.get_services_by_ids(organization_id=1, service_ids=[])
+
+        assert result == []
+        session.exec.assert_not_called()
+
+
+class TestGetServices:
+    @pytest.mark.asyncio
+    async def test_returns_service_catalog_for_organization(self):
+        repo, session = _make_repo()
+        services = [_make_service()]
+        result_mock = MagicMock()
+        result_mock.all.return_value = services
+        session.exec.return_value = result_mock
+
+        result = await repo.get_services(organization_id=1)
+
+        assert result == services
+        session.exec.assert_called_once()

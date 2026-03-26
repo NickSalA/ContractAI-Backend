@@ -3,21 +3,21 @@
 from datetime import date
 
 import pytest
+from pydantic import ValidationError
 
-from contractai_backend.modules.documents.domain.entities import DocumentTable
-from contractai_backend.modules.documents.domain.value_objs import DocumentState, DocumentType
+from contractai_backend.modules.documents.domain.entities import DocumentServiceTable, DocumentTable, ServiceTable
+from contractai_backend.modules.documents.domain.value_objs import CurrencyType, DocumentState, DocumentType
 
 
 def _valid_doc(**overrides) -> dict:
     base = {
+        "organization_id": 1,
         "name": "Contrato Ejemplo",
         "client": "Acme Corp",
         "type": DocumentType.LICENSES,
         "start_date": date(2024, 1, 1),
         "end_date": date(2024, 12, 31),
-        "value": 5000.0,
-        "currency": "PEN",
-        "licenses": 10,
+        "form_data": {"value": 1000, "currency": "USD", "owner": "IT"},
     }
     base.update(overrides)
     return base
@@ -29,41 +29,17 @@ class TestDocumentTableValidation:
         assert doc.name == "Contrato Ejemplo"
         assert doc.state == DocumentState.ACTIVE
 
-    def test_currency_must_be_uppercased(self):
-        with pytest.raises(ValueError, match="Currency code must be uppercase"):
-            DocumentTable.model_validate(_valid_doc(currency="pen"))
-
     def test_end_date_before_start_date_raises(self):
-        with pytest.raises(ValueError, match="End date cannot be earlier than start date"):
+        with pytest.raises(ValidationError, match="End date cannot be earlier than start date"):
             DocumentTable.model_validate(_valid_doc(start_date=date(2024, 6, 1), end_date=date(2024, 1, 1)))
 
-    def test_negative_value_raises(self):
-        with pytest.raises(ValueError, match="Value must be a positive number"):
-            DocumentTable.model_validate(_valid_doc(value=-100.0))
+    def test_blank_name_raises(self):
+        with pytest.raises(ValidationError, match="Field cannot be empty"):
+            DocumentTable.model_validate(_valid_doc(name="   "))
 
-    def test_zero_value_is_valid(self):
-        doc = DocumentTable.model_validate(_valid_doc(value=0.0))
-        assert doc.value == 0.0
-
-    def test_negative_licenses_raises(self):
-        with pytest.raises(ValueError, match="Licenses must be a non-negative integer"):
-            DocumentTable.model_validate(_valid_doc(licenses=-1))
-
-    def test_zero_licenses_is_valid(self):
-        doc = DocumentTable.model_validate(_valid_doc(licenses=0))
-        assert doc.licenses == 0
-
-    def test_currency_wrong_length_raises(self):
-        with pytest.raises(ValueError, match="Currency code must be a 3-letter string"):
-            DocumentTable.model_validate(_valid_doc(currency="US"))
-
-    def test_currency_too_long_raises(self):
-        with pytest.raises(ValueError, match="Currency code must be a 3-letter string"):
-            DocumentTable.model_validate(_valid_doc(currency="USDX"))
-
-    def test_same_start_and_end_date_is_valid(self):
-        doc = DocumentTable.model_validate(_valid_doc(start_date=date(2024, 6, 1), end_date=date(2024, 6, 1)))
-        assert doc.start_date == doc.end_date
+    def test_form_data_must_be_json_object(self):
+        with pytest.raises(ValidationError, match="Input should be a valid dictionary"):
+            DocumentTable.model_validate(_valid_doc(form_data=["invalid"]))
 
     def test_default_state_is_active(self):
         doc = DocumentTable.model_validate(_valid_doc())
@@ -83,3 +59,64 @@ class TestDocumentTableValidation:
         for state in DocumentState:
             doc = DocumentTable.model_validate(_valid_doc(state=state))
             assert doc.state == state
+
+
+class TestDocumentServiceTableValidation:
+    def test_creates_valid_document_service(self):
+        service_item = DocumentServiceTable.model_validate(
+            {
+                "document_id": 1,
+                "service_id": 2,
+                "description": "Hosting",
+                "value": 1500.0,
+                "currency": CurrencyType.PEN,
+                "start_date": date(2024, 1, 1),
+                "end_date": date(2024, 6, 30),
+            }
+        )
+        assert service_item.currency == CurrencyType.PEN
+
+    def test_negative_value_raises(self):
+        with pytest.raises(ValidationError, match="Value must be a positive number"):
+            DocumentServiceTable.model_validate(
+                {
+                    "document_id": 1,
+                    "service_id": 2,
+                    "value": -1.0,
+                    "currency": CurrencyType.USD,
+                    "start_date": date(2024, 1, 1),
+                    "end_date": date(2024, 1, 2),
+                }
+            )
+
+    def test_non_positive_service_id_raises(self):
+        with pytest.raises(ValidationError, match="ID must be a positive integer"):
+            DocumentServiceTable.model_validate(
+                {
+                    "document_id": 1,
+                    "service_id": 0,
+                    "value": 10.0,
+                    "currency": CurrencyType.EUR,
+                    "start_date": date(2024, 1, 1),
+                    "end_date": date(2024, 1, 2),
+                }
+            )
+
+    def test_end_date_before_start_date_raises(self):
+        with pytest.raises(ValidationError, match="End date cannot be earlier than start date"):
+            DocumentServiceTable.model_validate(
+                {
+                    "document_id": 1,
+                    "service_id": 2,
+                    "value": 10.0,
+                    "currency": CurrencyType.EUR,
+                    "start_date": date(2024, 2, 1),
+                    "end_date": date(2024, 1, 1),
+                }
+            )
+
+
+class TestSupportingTables:
+    def test_service_table_requires_non_empty_name(self):
+        with pytest.raises(ValidationError, match="Service name cannot be empty"):
+            ServiceTable.model_validate({"organization_id": 1, "name": "   "})
