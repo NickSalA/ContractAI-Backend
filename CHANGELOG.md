@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.5.0 (2026-03-26)
+
+### Bug Fixes
+
+- **checkpointer**: Corregir lógica de guardado
+  ([`a704192`](https://github.com/NickSalA/ContractAI-Backend/commit/a7041929e2b85f911ada45aff318a1a7dba247c9))
+
+### Features
+
+- Add template management and extraction scripts
+  ([`69ec938`](https://github.com/NickSalA/ContractAI-Backend/commit/69ec938761eaf52d3d521af1909fd2f6ad74eb1f))
+
+
 ## v0.4.1 (2026-03-25)
 
 
