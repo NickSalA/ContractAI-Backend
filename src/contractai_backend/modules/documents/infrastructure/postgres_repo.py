@@ -1,5 +1,6 @@
 """Repositorio de Documentos utilizando SQLModel y AsyncSession para Supabase."""
 
+from collections import defaultdict
 from collections.abc import Sequence
 
 from loguru import logger
@@ -47,6 +48,27 @@ class SQLModelDocumentRepository(PostgresBaseRepository[DocumentTable], Document
             query = select(DocumentServiceTable).where(DocumentServiceTable.document_id == document_id).order_by(DocumentServiceTable.id)
             result = await self.session.exec(statement=query)
             return result.all()
+        except OperationalError as e:
+            raise DocumentDatabaseUnavailableError() from e
+        except SQLAlchemyError as e:
+            raise DocumentDatabaseError() from e
+
+    async def get_document_services_by_document_ids(self, document_ids: Sequence[int]) -> dict[int, Sequence[DocumentServiceTable]]:
+        """Obtiene los servicios asociados a múltiples documentos en una sola consulta."""
+        if not document_ids:
+            return {}
+
+        try:
+            query = (
+                select(DocumentServiceTable)
+                .where(DocumentServiceTable.document_id.in_(document_ids))
+                .order_by(DocumentServiceTable.document_id, DocumentServiceTable.id)
+            )
+            result = await self.session.exec(statement=query)
+            grouped_services: defaultdict[int, list[DocumentServiceTable]] = defaultdict(list)
+            for service_item in result.all():
+                grouped_services[service_item.document_id].append(service_item)
+            return dict(grouped_services)
         except OperationalError as e:
             raise DocumentDatabaseUnavailableError() from e
         except SQLAlchemyError as e:

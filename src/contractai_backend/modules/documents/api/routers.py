@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from ....shared.api.dependencies.security import CurrentUserDep
 from ..application.repositories import DocumentRepository
 from ..application.services import DocumentService
-from ..domain.entities import DocumentTable
+from ..domain.entities import DocumentServiceTable, DocumentTable
 from ..domain.exceptions import DocumentNotFoundError, DocumentValidationError, InvalidDocumentFileError
 from .dependencies import get_document_repository, get_document_service
 from .schemas import (
@@ -34,6 +34,12 @@ async def _build_document_response(repository: DocumentRepository, document: Doc
     if document.id is not None:
         service_items = await repository.get_document_services(document_id=document.id)
 
+    return _serialize_document_response(document=document, service_items=service_items)
+
+
+def _serialize_document_response(*, document: DocumentTable, service_items: Sequence[DocumentServiceTable] | None = None) -> DocumentResponse:
+    resolved_service_items = list(service_items or [])
+
     return DocumentResponse(
         id=document.id,
         name=document.name,
@@ -45,7 +51,7 @@ async def _build_document_response(repository: DocumentRepository, document: Doc
         state=document.state,
         file_path=document.file_path,
         file_name=document.file_name,
-        service_items=[DocumentServiceItemResponse.model_validate(item) for item in service_items],
+        service_items=[DocumentServiceItemResponse.model_validate(item) for item in resolved_service_items],
         created_at=document.created_at,
         updated_at=document.updated_at,
     )
@@ -84,7 +90,10 @@ async def create_document(
 async def list_documents(repository: DocumentRepositoryDep, current_user: CurrentUserDep) -> Sequence[DocumentResponse]:
     """Endpoint to list documents with optional filters."""
     docs = await repository.get_all(filters={"organization_id": current_user.organization_id})
-    return [await _build_document_response(repository=repository, document=doc) for doc in docs]
+    document_ids = [doc.id for doc in docs if doc.id is not None]
+    service_items_by_document = await repository.get_document_services_by_document_ids(document_ids=document_ids)
+
+    return [_serialize_document_response(document=doc, service_items=service_items_by_document.get(doc.id, [])) for doc in docs]
 
 
 @router.get(path="/services", response_model=Sequence[ServiceCatalogItemResponse])

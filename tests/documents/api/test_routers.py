@@ -69,7 +69,7 @@ class TestListDocuments:
         docs = [_make_doc(1), _make_doc(2)]
         mock_repo = AsyncMock()
         mock_repo.get_all.return_value = docs
-        mock_repo.get_document_services.return_value = []
+        mock_repo.get_document_services_by_document_ids.return_value = {1: [], 2: []}
 
         app = _make_app(mock_repo=mock_repo)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
