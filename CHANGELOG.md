@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.10.1 (2026-03-27)
+
+### Bug Fixes
+
+- Limit pool connections for db
+  ([`d404217`](https://github.com/NickSalA/ContractAI-Backend/commit/d4042179b0706ee613815d6a92d4beb0e1bd4ace))
+
+
 ## v0.10.0 (2026-03-27)
 
 
