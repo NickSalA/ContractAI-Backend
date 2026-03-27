@@ -111,6 +111,32 @@ class TestGetDocumentServices:
         session.exec.assert_called_once()
 
 
+class TestGetDocumentServicesByDocumentIds:
+    @pytest.mark.asyncio
+    async def test_groups_services_by_document_id(self):
+        repo, session = _make_repo()
+        first_item = _make_document_service(1)
+        second_item = _make_document_service(2)
+        second_item.document_id = 2
+        result_mock = MagicMock()
+        result_mock.all.return_value = [first_item, second_item]
+        session.exec.return_value = result_mock
+
+        result = await repo.get_document_services_by_document_ids(document_ids=[1, 2])
+
+        assert result == {1: [first_item], 2: [second_item]}
+        session.exec.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_empty_document_ids_returns_empty_mapping(self):
+        repo, session = _make_repo()
+
+        result = await repo.get_document_services_by_document_ids(document_ids=[])
+
+        assert result == {}
+        session.exec.assert_not_called()
+
+
 class TestReplaceDocumentServices:
     @pytest.mark.asyncio
     async def test_replaces_services_and_commits(self):

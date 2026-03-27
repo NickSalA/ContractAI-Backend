@@ -3,7 +3,7 @@
 import re
 
 import httpx
-from httpx._models import Response
+from httpx import Response
 
 from ....shared.config import settings
 from ..application.repositories import DocumentStorageRepository
@@ -13,10 +13,11 @@ from ..domain.exceptions import DocumentStorageError, DocumentStorageUnavailable
 class SupabaseStorageRepository(DocumentStorageRepository):
     """Stores document binaries in Supabase Storage using REST API."""
 
-    def __init__(self):
+    def __init__(self, client: httpx.AsyncClient | None = None):
         self.base_url: str = settings.SUPABASE_URL.rstrip("/")
         self.bucket: str = settings.SUPABASE_STORAGE_BUCKET
         self.api_key: str = settings.SUPABASE_SECRET_KEY
+        self.client = client
 
     def _sanitize_filename(self, filename: str) -> str:
         """Sanitizes filenames to a safe storage-friendly format."""
@@ -35,6 +36,20 @@ class SupabaseStorageRepository(DocumentStorageRepository):
         safe_name: str = self._sanitize_filename(filename)
         return f"documents/{document_id}/{safe_name}"
 
+    async def _post(self, *, url: str, headers: dict[str, str], content: bytes | None = None, json: dict | None = None) -> Response:
+        if self.client is not None:
+            return await self.client.post(url=url, headers=headers, content=content, json=json, timeout=30.0)
+
+        async with httpx.AsyncClient() as client:
+            return await client.post(url=url, headers=headers, content=content, json=json, timeout=30.0)
+
+    async def _delete(self, *, url: str, headers: dict[str, str]) -> Response:
+        if self.client is not None:
+            return await self.client.delete(url=url, headers=headers, timeout=30.0)
+
+        async with httpx.AsyncClient() as client:
+            return await client.delete(url=url, headers=headers, timeout=30.0)
+
     async def upload_file(self, document_id: int, file: bytes, filename: str, content_type: str) -> str:
         """Uploads a document file to Supabase Storage."""
         path: str = self._build_path(document_id, filename)
@@ -48,9 +63,7 @@ class SupabaseStorageRepository(DocumentStorageRepository):
         }
 
         try:
-            async with httpx.AsyncClient() as client:
-                response: Response = await client.post(url=endpoint, content=file, headers=headers)
-
+            response = await self._post(url=endpoint, content=file, headers=headers)
         except httpx.TimeoutException as e:
             raise DocumentStorageUnavailableError("El servicio de almacenamiento de documentos no respondió a tiempo.") from e
         except httpx.RequestError as e:
@@ -69,8 +82,7 @@ class SupabaseStorageRepository(DocumentStorageRepository):
             "apikey": self.api_key,
         }
         try:
-            async with httpx.AsyncClient() as client:
-                response: Response = await client.delete(url=endpoint, headers=headers)
+            response = await self._delete(url=endpoint, headers=headers)
         except httpx.TimeoutException as e:
             raise DocumentStorageUnavailableError("El servicio de almacenamiento de documentos no respondió a tiempo.") from e
         except httpx.RequestError as e:
@@ -100,8 +112,7 @@ class SupabaseStorageRepository(DocumentStorageRepository):
         payload: dict[str, int] = {"expiresIn": expires_in}
 
         try:
-            async with httpx.AsyncClient() as client:
-                response: Response = await client.post(url=endpoint, json=payload, headers=headers)
+            response = await self._post(url=endpoint, json=payload, headers=headers)
         except httpx.TimeoutException as e:
             raise DocumentStorageUnavailableError("El servicio de almacenamiento de documentos no respondió a tiempo.") from e
         except httpx.RequestError as e:

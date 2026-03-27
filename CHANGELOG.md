@@ -2,6 +2,62 @@
 
 <!-- version list -->
 
+## v0.9.1 (2026-03-27)
+
+### Bug Fixes
+
+- Add markdown2 and weasyprint dependencies in pyproject.toml and uv.lock
+  ([`08d0e68`](https://github.com/NickSalA/ContractAI-Backend/commit/08d0e68b52173b93cbdc3a14aae0ea476b1926a2))
+
+### Refactoring
+
+- Reorganize import statements in routers and template_service modules
+  ([`cbd95d6`](https://github.com/NickSalA/ContractAI-Backend/commit/cbd95d6eb711cc00e29dbe51437855c6958e9013))
+
+
+## v0.9.0 (2026-03-27)
+
+### Features
+
+- Implement template generation API and refactor document handling
+  ([`d745da0`](https://github.com/NickSalA/ContractAI-Backend/commit/d745da079dae64468d728714a65d3d7ff7f76cbe))
+
+
+## v0.8.0 (2026-03-27)
+
+### Features
+
+- Add OrganizationModuleAdapter to connect templates with organization service
+  ([`8fe2d72`](https://github.com/NickSalA/ContractAI-Backend/commit/8fe2d7231be4db1ff78bed67562a75558ade80c6))
+
+
+## v0.7.1 (2026-03-27)
+
+
+## v0.7.0 (2026-03-26)
+
+
+## v0.6.0 (2026-03-26)
+
+### Features
+
+- Implement document generation and template management
+  ([`a1f7a3c`](https://github.com/NickSalA/ContractAI-Backend/commit/a1f7a3c800ce916d6aabe91701281ce5329e464a))
+
+
+## v0.5.0 (2026-03-26)
+
+### Bug Fixes
+
+- **checkpointer**: Corregir lógica de guardado
+  ([`a704192`](https://github.com/NickSalA/ContractAI-Backend/commit/a7041929e2b85f911ada45aff318a1a7dba247c9))
+
+### Features
+
+- Add template management and extraction scripts
+  ([`69ec938`](https://github.com/NickSalA/ContractAI-Backend/commit/69ec938761eaf52d3d521af1909fd2f6ad74eb1f))
+
+
 ## v0.4.1 (2026-03-25)
 
 

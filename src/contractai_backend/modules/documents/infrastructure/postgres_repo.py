@@ -1,5 +1,6 @@
 """Repositorio de Documentos utilizando SQLModel y AsyncSession para Supabase."""
 
+from collections import defaultdict
 from collections.abc import Sequence
 
 from loguru import logger
@@ -9,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ....core.infrastructure.base import PostgresBaseRepository
 from ..application.repositories import DocumentRepository
-from ..domain import DocumentServiceTable, DocumentState, DocumentTable, ServiceTable
+from ..domain import DocumentServiceTable, DocumentTable, ServiceTable
 from ..domain.exceptions import DocumentDatabaseError, DocumentDatabaseUnavailableError
 
 
@@ -19,34 +20,33 @@ class SQLModelDocumentRepository(PostgresBaseRepository[DocumentTable], Document
     def __init__(self, session: AsyncSession):
         super().__init__(model=DocumentTable, session=session)
 
-    async def get_by_client_name(self, client_name: str) -> Sequence[DocumentTable]:
-        """Obtiene una lista de documentos por el nombre del cliente."""
-        try:
-            query = select(self.model).where(self.model.client == client_name)
-            result = await self.session.exec(statement=query)
-            return result.all()
-        except OperationalError as e:
-            raise DocumentDatabaseUnavailableError() from e
-        except SQLAlchemyError as e:
-            raise DocumentDatabaseError() from e
-
-    async def get_active_documents(self) -> Sequence[DocumentTable]:
-        """Obtiene una lista de documentos activos."""
-        try:
-            query = select(self.model).where(self.model.state == DocumentState.ACTIVE)
-            result = await self.session.exec(statement=query)
-            return result.all()
-        except OperationalError as e:
-            raise DocumentDatabaseUnavailableError() from e
-        except SQLAlchemyError as e:
-            raise DocumentDatabaseError() from e
-
     async def get_document_services(self, document_id: int) -> Sequence[DocumentServiceTable]:
         """Obtiene los servicios asociados a un documento."""
         try:
             query = select(DocumentServiceTable).where(DocumentServiceTable.document_id == document_id).order_by(DocumentServiceTable.id)
             result = await self.session.exec(statement=query)
             return result.all()
+        except OperationalError as e:
+            raise DocumentDatabaseUnavailableError() from e
+        except SQLAlchemyError as e:
+            raise DocumentDatabaseError() from e
+
+    async def get_document_services_by_document_ids(self, document_ids: Sequence[int]) -> dict[int, Sequence[DocumentServiceTable]]:
+        """Obtiene los servicios asociados a múltiples documentos en una sola consulta."""
+        if not document_ids:
+            return {}
+
+        try:
+            query = (
+                select(DocumentServiceTable)
+                .where(DocumentServiceTable.document_id.in_(document_ids))
+                .order_by(DocumentServiceTable.document_id, DocumentServiceTable.id)
+            )
+            result = await self.session.exec(statement=query)
+            grouped_services: defaultdict[int, list[DocumentServiceTable]] = defaultdict(list)
+            for service_item in result.all():
+                grouped_services[service_item.document_id].append(service_item)
+            return dict(grouped_services)
         except OperationalError as e:
             raise DocumentDatabaseUnavailableError() from e
         except SQLAlchemyError as e:

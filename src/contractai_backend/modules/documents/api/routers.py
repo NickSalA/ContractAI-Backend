@@ -10,14 +10,12 @@ from pydantic import ValidationError
 from ....shared.api.dependencies.security import CurrentUserDep
 from ..application.repositories import DocumentRepository
 from ..application.services import DocumentService
-from ..domain.entities import DocumentTable
 from ..domain.exceptions import DocumentNotFoundError, DocumentValidationError, InvalidDocumentFileError
 from .dependencies import get_document_repository, get_document_service
 from .schemas import (
     CreateDocumentRequest,
     DocumentFileUrlResponse,
     DocumentResponse,
-    DocumentServiceItemResponse,
     FileRequest,
     ServiceCatalogItemResponse,
     UpdateDocumentRequest,
@@ -29,33 +27,10 @@ DocumentServiceDep = Annotated[DocumentService, Depends(get_document_service)]
 DocumentRepositoryDep = Annotated[DocumentRepository, Depends(get_document_repository)]
 
 
-async def _build_document_response(repository: DocumentRepository, document: DocumentTable) -> DocumentResponse:
-    service_items = []
-    if document.id is not None:
-        service_items = await repository.get_document_services(document_id=document.id)
-
-    return DocumentResponse(
-        id=document.id,
-        name=document.name,
-        client=document.client,
-        type=document.type,
-        start_date=document.start_date,
-        end_date=document.end_date,
-        form_data=document.form_data,
-        state=document.state,
-        file_path=document.file_path,
-        file_name=document.file_name,
-        service_items=[DocumentServiceItemResponse.model_validate(item) for item in service_items],
-        created_at=document.created_at,
-        updated_at=document.updated_at,
-    )
-
-
 @router.post(path="/", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 async def create_document(
     file: UploadFile,
     service: DocumentServiceDep,
-    repository: DocumentRepositoryDep,
     current_user: CurrentUserDep,
     document: str = Form(...),
 ) -> DocumentResponse:
@@ -77,14 +52,14 @@ async def create_document(
         file_data=file_data,
         organization_id=current_user.organization_id,
     )
-    return await _build_document_response(repository=repository, document=saved_document)
+    return saved_document
 
 
 @router.get(path="/", response_model=Sequence[DocumentResponse])
-async def list_documents(repository: DocumentRepositoryDep, current_user: CurrentUserDep) -> Sequence[DocumentResponse]:
+async def list_documents(service: DocumentServiceDep, current_user: CurrentUserDep) -> Sequence[DocumentResponse]:
     """Endpoint to list documents with optional filters."""
-    docs = await repository.get_all(filters={"organization_id": current_user.organization_id})
-    return [await _build_document_response(repository=repository, document=doc) for doc in docs]
+    documents: Sequence[DocumentResponse] = await service.get_documents(organization_id=current_user.organization_id)
+    return documents
 
 
 @router.get(path="/services", response_model=Sequence[ServiceCatalogItemResponse])
@@ -95,12 +70,12 @@ async def list_services(service: DocumentServiceDep, current_user: CurrentUserDe
 
 
 @router.get(path="/{document_id}", response_model=DocumentResponse)
-async def get_document(document_id: int, repository: DocumentRepositoryDep, current_user: CurrentUserDep) -> DocumentResponse:
+async def get_document(document_id: int, service: DocumentServiceDep, current_user: CurrentUserDep) -> DocumentResponse:
     """Endpoint to retrieve a document by its ID."""
-    doc = await repository.get_by_id(id=document_id)
-    if not doc or doc.organization_id != current_user.organization_id:
+    doc: DocumentResponse | None = await service.get_document(id=document_id, organization_id=current_user.organization_id)
+    if not doc:
         raise DocumentNotFoundError(document_id=document_id)
-    return await _build_document_response(repository=repository, document=doc)
+    return doc
 
 
 @router.get(path="/{document_id}/file-url", response_model=DocumentFileUrlResponse)
@@ -114,7 +89,6 @@ async def get_document_file_url(document_id: int, service: DocumentServiceDep, c
 async def update_document(
     document_id: int,
     service: DocumentServiceDep,
-    repository: DocumentRepositoryDep,
     current_user: CurrentUserDep,
     document: str = Form(...),
     file: UploadFile | None = None,
@@ -139,7 +113,7 @@ async def update_document(
         organization_id=current_user.organization_id,
         file_data=file_data,
     )
-    return await _build_document_response(repository=repository, document=updated_doc)
+    return updated_doc
 
 
 @router.delete(path="/{document_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)

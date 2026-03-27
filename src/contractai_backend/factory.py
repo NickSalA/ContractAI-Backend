@@ -8,17 +8,20 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from contractai_backend.modules.integrations.api.routers import router as integrations_router
+
 from .core.exceptions.base import AppError
 from .modules.chatbot.api.routers import chat_router, conversation_router
 from .modules.chatbot.infrastructure.agent.checkpointer import init_checkpointer
 from .modules.documents.api.routers import router as documents_router
-from .modules.users.api.routers import auth_router, users_router
-from contractai_backend.modules.integrations.api.routers import router as integrations_router
-from .modules.notifications.api.routers import router as notifications_router
 from .modules.documents.infrastructure import configure_embedding
+from .modules.notifications.api.routers import router as notifications_router
+from .modules.templates.api.routers import router as templates_router
+from .modules.users.api.routers import auth_router, users_router
 from .shared.api.error_handlers import app_error_handler, global_exception_handler, http_exception_handler, validation_exception_handler
 from .shared.api.middlewares import LoguruMiddleware
 from .shared.config import settings
+from .shared.infrastructure.http import build_http_client
 
 __version__: str = get_version(distribution_name="contractai-backend")
 
@@ -30,11 +33,12 @@ def create() -> FastAPI:
     async def lifespan(_: FastAPI):
         """Lifespan context manager for startup and shutdown events."""
         configure_embedding()
+        app.state.http_client = build_http_client()
         pool = await init_checkpointer()
         app.state.pool = pool
 
         yield
-
+        await app.state.http_client.aclose()
         await app.state.pool.close()
 
     app = FastAPI(title=settings.PROJECT_NAME, version=__version__, lifespan=lifespan)
@@ -46,15 +50,15 @@ def create() -> FastAPI:
     app.include_router(router=conversation_router, prefix="/conversations", tags=["Conversaciones"])
     app.include_router(router=integrations_router, prefix="/integrations", tags=["Integraciones"])
     app.include_router(router=notifications_router, prefix="/notifications", tags=["Notificaciones"])
-
+    app.include_router(router=templates_router, prefix="/templates", tags=["Plantillas"])
     app.add_middleware(
-        middleware_class=CORSMiddleware,  # ty:ignore[invalid-argument-type]
+        middleware_class=CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
-    app.add_middleware(middleware_class=LoguruMiddleware)  # ty:ignore[invalid-argument-type]
+    app.add_middleware(middleware_class=LoguruMiddleware)
 
     app.add_exception_handler(exc_class_or_status_code=AppError, handler=app_error_handler)  # ty:ignore[invalid-argument-type]
     app.add_exception_handler(exc_class_or_status_code=StarletteHTTPException, handler=http_exception_handler)  # ty:ignore[invalid-argument-type]

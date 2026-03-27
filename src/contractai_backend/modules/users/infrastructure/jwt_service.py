@@ -3,7 +3,7 @@
 from uuid import UUID
 
 import httpx
-from httpx._models import Response
+from httpx import Response
 
 from ....core.exceptions.base import BadGatewayError, UnauthorizedError
 from ....shared.config import settings
@@ -12,22 +12,29 @@ from ..application.repositories.token_service import IAuthRepository
 
 
 class SupabaseAuthService(IAuthRepository):
-    def __init__(self):
+    def __init__(self, client: httpx.AsyncClient | None = None):
         self.base_url: str = settings.SUPABASE_URL.rstrip("/")
         self.api_key: str = settings.SUPABASE_SECRET_KEY
+        self.client = client
 
-    async def get_authenticated_user(self, access_token: str) -> ExternalUserDTO:
-        """Valida el token con Supabase Auth y devuelve los datos del usuario autenticado."""
+    async def _request_user_payload(self, access_token: str) -> Response:
         headers = {
             "Authorization": f"Bearer {access_token}",
             "apikey": self.api_key,
         }
 
         try:
+            if self.client is not None:
+                return await self.client.get(url=f"{self.base_url}/auth/v1/user", headers=headers, timeout=10.0)
+
             async with httpx.AsyncClient(timeout=10.0) as client:
-                response: Response = await client.get(url=f"{self.base_url}/auth/v1/user", headers=headers)
+                return await client.get(url=f"{self.base_url}/auth/v1/user", headers=headers)
         except httpx.RequestError as exc:
             raise BadGatewayError("No se pudo validar la sesión con Supabase Auth") from exc
+
+    async def get_authenticated_user(self, access_token: str) -> ExternalUserDTO:
+        """Valida el token con Supabase Auth y devuelve los datos del usuario autenticado."""
+        response = await self._request_user_payload(access_token=access_token)
 
         if response.status_code in (httpx.codes.ACCEPTED, httpx.codes.FORBIDDEN):
             raise UnauthorizedError("Token de autenticación inválido o expirado")
