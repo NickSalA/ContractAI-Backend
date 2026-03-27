@@ -17,21 +17,14 @@ class DocumentModuleAdapter(IDocumentModuleAdapter):
             type=document_payload["type"],
             start_date=document_payload["start_date"],
             end_date=document_payload["end_date"],
-            form_data=document_payload["form_data"]
+            form_data=document_payload["form_data"],
+            service_items=document_payload.get("service_items", []),
         )
 
-        file_request = FileRequest(
-            filename=document_payload["file_name"],
-            content=file,
-            content_type="application/pdf"
-        )
+        file_request = FileRequest(filename=document_payload["file_name"], content=file, content_type="application/pdf")
 
-        # 3. Hacemos la llamada final a tu función estrella
-        # (Nota: como create_document es async, el adaptador también debe serlo)
         nuevo_documento = await self.doc_service.create_document(
-            data=doc_request,
-            file_data=file_request,
-            organization_id=document_payload["organization_id"]
+            data=doc_request, file_data=file_request, organization_id=document_payload["organization_id"]
         )
-        
+
         return nuevo_documento

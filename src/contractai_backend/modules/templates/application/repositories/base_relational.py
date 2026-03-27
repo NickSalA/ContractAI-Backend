@@ -10,20 +10,20 @@ from .....core.application.base import BaseRepository
 
 class ITemplateRepository(BaseRepository[TemplateTable]):
     @abstractmethod
-    def get_template_by_id(self, template_id: int, organization_id: int | None) -> TemplateTable | None:
+    async def get_template_by_id(self, template_id: int, organization_id: int | None) -> TemplateTable | None:
         """Obtiene la plantilla validando que pertenezca a la organización."""
         pass
 
 
 class IOrganizationRepository(ABC):
     @abstractmethod
-    def get_organization_data(self, organization_id: int) -> dict[str, Any]:
+    async def get_organization_data(self, organization_id: int) -> dict[str, Any]:
         """Obtiene los datos de la organización."""
         pass
 
 
 class IDocumentModuleAdapter(ABC):
     @abstractmethod
-    def save_generated_document(self, document_payload: dict, file: bytes) -> Any:
+    async def save_generated_document(self, document_payload: dict, file: bytes) -> Any:
         """Envía los datos del PDF generado al módulo de Documentos para que él lo guarde."""
         pass

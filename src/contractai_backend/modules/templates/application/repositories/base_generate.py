@@ -5,6 +5,6 @@ from abc import ABC, abstractmethod
 
 class IDocumentGenerator(ABC):
     @abstractmethod
-    def generate_pdf(self, markdown_content: str, file_name: str) -> str:
+    async def generate_pdf(self, markdown_content: str) -> bytes:
         """Toma el Markdown ya inyectado y el nombre de archivo deseado. Genera el PDF y retorna la ruta o URL donde se guardó."""
         pass
