@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v0.7.0 (2026-03-26)
+
+
+## v0.6.0 (2026-03-26)
+
+### Features
+
+- Implement document generation and template management
+  ([`a1f7a3c`](https://github.com/NickSalA/ContractAI-Backend/commit/a1f7a3c800ce916d6aabe91701281ce5329e464a))
+
+
 ## v0.5.0 (2026-03-26)
 
 ### Bug Fixes
