@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.8.0 (2026-03-27)
+
+### Features
+
+- Add OrganizationModuleAdapter to connect templates with organization service
+  ([`8fe2d72`](https://github.com/NickSalA/ContractAI-Backend/commit/8fe2d7231be4db1ff78bed67562a75558ade80c6))
+
+
 ## v0.7.1 (2026-03-27)
 
 
