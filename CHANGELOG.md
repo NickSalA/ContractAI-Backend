@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.11.0 (2026-03-27)
+
+### Features
+
+- Add ingest flow for drive integration
+  ([`2cdb9ec`](https://github.com/NickSalA/ContractAI-Backend/commit/2cdb9ec865f9a95339a418ebb782d7e03a0c8f77))
+
+
 ## v0.10.2 (2026-03-27)
 
 ### Bug Fixes
