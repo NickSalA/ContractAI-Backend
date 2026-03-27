@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends
 
 from ...api.dependencies import get_conversation_service
 from ...api.schemas import ConversationList, ConversationRead
-from ...application.services.conversation_service import ConversationService
-from ...domain.exceptions import ConversationNotFoundError
+from ...application import ConversationService
+from ...domain import ConversationNotFoundError
 
 router = APIRouter()
 ConversationServiceDep = Annotated[ConversationService, Depends(get_conversation_service)]

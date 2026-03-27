@@ -1,10 +1,11 @@
 import asyncio
+
 from loguru import logger
-from contractai_backend.modules.integrations.application.repositories.base_integration import ICloudIntegrationProvider
-from contractai_backend.modules.integrations.domain.exceptions import (
+from contractai_backend.modules.integrations.application.repositories import ICloudIntegrationProvider
+from contractai_backend.modules.integrations.domain import (
+    CloudFileNotFoundError,
     CloudStorageIntegrationError,
     InvalidCloudTokenError,
-    CloudFileNotFoundError
 )
 
 
@@ -27,8 +28,8 @@ class IntegrationService:
         for file_id in file_ids:
             try:
                 metadata = await self.provider.get_file_metadata(token, file_id)
-                file_name = metadata.get('name', 'documento_desconocido')
-                web_link = metadata.get('webViewLink', '')
+                file_name = metadata.get("name", "documento_desconocido")
+                web_link = metadata.get("webViewLink", "")
 
                 logger.debug(f"Extrayendo metadatos de: {file_name} | Link: {web_link}")
 

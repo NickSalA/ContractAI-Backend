@@ -1,7 +1,9 @@
 from pydantic import BaseModel
 
+
 class AuthURLResponse(BaseModel):
     url: str
+
 
 class TokenResponse(BaseModel):
     token: str
@@ -11,8 +13,10 @@ class TokenResponse(BaseModel):
     client_secret: str
     scopes: list[str]
 
+
 class DriveRequest(BaseModel):
     token: dict
+
 
 class ImportRequest(BaseModel):
     token: dict

@@ -2,7 +2,7 @@
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from ...domain.exceptions import LLMInitializationError
+from ...domain import LLMInitializationError
 from .....shared.config import settings
 
 

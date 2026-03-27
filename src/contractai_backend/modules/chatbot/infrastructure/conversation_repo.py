@@ -7,8 +7,8 @@ from sqlmodel import desc, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from contractai_backend.core.infrastructure.base import PostgresBaseRepository
-from contractai_backend.modules.chatbot.application.repositories.base_conversation import IConversationRepository
-from contractai_backend.modules.chatbot.domain.entities import ConversationTable, Message
+from contractai_backend.modules.chatbot.application.repositories import IConversationRepository
+from contractai_backend.modules.chatbot.domain import ConversationTable, Message
 
 
 class ConversationRepository(PostgresBaseRepository[ConversationTable], IConversationRepository):

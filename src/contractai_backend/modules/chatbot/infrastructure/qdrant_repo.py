@@ -9,8 +9,8 @@ from llama_index.core.schema import NodeWithScore
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from qdrant_client import AsyncQdrantClient
 
-from ..application.repositories.base_vectorial import VectorRepository
-from ..domain.exceptions import VectorDatabaseUnavailableError, VectorSearchError
+from ..application.repositories import VectorRepository
+from ..domain import VectorDatabaseUnavailableError, VectorSearchError
 
 
 class QdrantVectorRepository(VectorRepository):

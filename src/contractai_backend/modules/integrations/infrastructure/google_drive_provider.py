@@ -1,15 +1,15 @@
 import io
 import asyncio
+
+from google.auth.exceptions import GoogleAuthError
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload
 from google_auth_oauthlib.flow import Flow
-from googleapiclient.errors import HttpError
-from google.auth.exceptions import GoogleAuthError
 
-from contractai_backend.modules.integrations.application.repositories.base_integration import ICloudIntegrationProvider
-from contractai_backend.modules.integrations.domain.exceptions import CloudStorageIntegrationError, InvalidCloudTokenError, CloudFileNotFoundError
-
+from contractai_backend.modules.integrations.application import ICloudIntegrationProvider
+from contractai_backend.modules.integrations.domain import CloudFileNotFoundError, CloudStorageIntegrationError, InvalidCloudTokenError
 
 
 class GoogleDriveProvider(ICloudIntegrationProvider):
@@ -17,14 +17,14 @@ class GoogleDriveProvider(ICloudIntegrationProvider):
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
-        self.scopes = ['https://www.googleapis.com/auth/drive.readonly']
+        self.scopes = ["https://www.googleapis.com/auth/drive.readonly"]
         self.client_config = {
             "web": {
                 "client_id": self.client_id,
                 "client_secret": self.client_secret,
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": [self.redirect_uri]
+                "redirect_uris": [self.redirect_uri],
             }
         }
 
@@ -32,7 +32,7 @@ class GoogleDriveProvider(ICloudIntegrationProvider):
         flow = Flow.from_client_config(self.client_config, scopes=self.scopes)
         flow.redirect_uri = self.redirect_uri
         flow.autogenerate_code_verifier = False
-        auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
+        auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline")
         return auth_url
 
     def _exchange_sync(self, code: str) -> dict:
@@ -48,7 +48,7 @@ class GoogleDriveProvider(ICloudIntegrationProvider):
                 "token_uri": credentials.token_uri,
                 "client_id": credentials.client_id,
                 "client_secret": credentials.client_secret,
-                "scopes": credentials.scopes
+                "scopes": credentials.scopes,
             }
         except Exception as e:
             raise InvalidCloudTokenError("El código de autorización proporcionado es inválido o ha expirado.") from e
@@ -59,7 +59,7 @@ class GoogleDriveProvider(ICloudIntegrationProvider):
     def _list_files_sync(self, token: dict, folder_id: str | None) -> list[dict]:
         try:
             creds = Credentials(**token)
-            service = build('drive', 'v3', credentials=creds)
+            service = build("drive", "v3", credentials=creds)
 
             query = "trashed = false"
             if folder_id:
@@ -67,8 +67,8 @@ class GoogleDriveProvider(ICloudIntegrationProvider):
             else:
                 query += " and 'root' in parents"
 
-            results = service.files().list(q=query, spaces='drive', fields="files(id, name, mimeType)").execute()
-            return results.get('files', [])
+            results = service.files().list(q=query, spaces="drive", fields="files(id, name, mimeType)").execute()
+            return results.get("files", [])
         except HttpError as e:
             if e.resp.status in [401, 403]:
                 raise InvalidCloudTokenError() from e
@@ -84,12 +84,9 @@ class GoogleDriveProvider(ICloudIntegrationProvider):
     def _get_file_metadata_sync(self, token: dict, file_id: str) -> dict:
         try:
             creds = Credentials(**token)
-            service = build('drive', 'v3', credentials=creds)
+            service = build("drive", "v3", credentials=creds)
 
-            file_metadata = service.files().get(
-                fileId=file_id,
-                fields="id, name, mimeType, webViewLink"
-            ).execute()
+            file_metadata = service.files().get(fileId=file_id, fields="id, name, mimeType, webViewLink").execute()
 
             return file_metadata
         except HttpError as e:
@@ -109,13 +106,13 @@ class GoogleDriveProvider(ICloudIntegrationProvider):
     def _download_file_sync(self, token: dict, file_id: str) -> bytes:
         try:
             creds = Credentials(**token)
-            service = build('drive', 'v3', credentials=creds)
+            service = build("drive", "v3", credentials=creds)
 
             file_metadata = service.files().get(fileId=file_id, fields="mimeType").execute()
-            mime_type = file_metadata.get('mimeType', '')
+            mime_type = file_metadata.get("mimeType", "")
 
-            if mime_type.startswith('application/vnd.google-apps.'):
-                request = service.files().export_media(fileId=file_id, mimeType='application/pdf')
+            if mime_type.startswith("application/vnd.google-apps."):
+                request = service.files().export_media(fileId=file_id, mimeType="application/pdf")
             else:
                 request = service.files().get_media(fileId=file_id)
 

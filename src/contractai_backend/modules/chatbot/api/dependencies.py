@@ -8,8 +8,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ....shared.config import settings
 from ....shared.infrastructure.database import get_aclient, get_session
-from ..application.repositories.base_llm import ILLMProvider
-from ..application.services import ChatbotService, ConversationService
+from ..application import ChatbotService, ConversationService, ILLMProvider
 from ..infrastructure import ConversationRepository, QdrantVectorRepository
 from ..infrastructure.agent import ContractAgentGraph, LangGraphGeminiAdapter, build_bc_tool, get_llm
 
