@@ -1,10 +1,11 @@
 """Módulo de enrutamiento para la API de plantillas."""
 
-from contractai_backend.modules.templates.domain.entities import TemplateTable
-
-from typing import Annotated, Any, Sequence
+from collections.abc import Sequence
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+
+from contractai_backend.modules.templates.domain.entities import TemplateTable
 
 from ....shared.api.dependencies.security import CurrentUserDep
 from ..application.services.template_service import TemplateService
