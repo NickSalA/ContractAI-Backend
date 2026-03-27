@@ -48,6 +48,17 @@ class LlamaIndexQdrantRepository(VectorRepository):
             if "already exists" not in str(object=e):
                 raise DocumentVectorError(f"No se pudo indexar el campo document_id: {e!s}") from e
 
+        for field_name in ["organization_id", "source_provider", "source_file_id"]:
+            try:
+                await self.async_client.create_payload_index(
+                    collection_name=index,
+                    field_name=field_name,
+                    field_schema=models.PayloadSchemaType.KEYWORD,
+                )
+            except Exception as e:
+                if "already exists" not in str(object=e):
+                    raise DocumentVectorError(f"No se pudo indexar el campo {field_name}: {e!s}") from e
+
     async def delete_vectors(self, index_name: str, document_id: int):
         """Elimina todos los vectores asociados a un documento específico en Qdrant, identificados por el nombre del archivo."""
         try:

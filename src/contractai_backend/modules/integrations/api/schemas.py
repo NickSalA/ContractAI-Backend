@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from ...documents.api.schemas import CreateDocumentRequest
 
 
 class AuthURLResponse(BaseModel):
@@ -18,7 +20,17 @@ class DriveRequest(BaseModel):
     token: dict
 
 
+class DriveImportFile(BaseModel):
+    file_id: str = Field(..., min_length=1)
+    document: CreateDocumentRequest
+
+
 class ImportRequest(BaseModel):
     token: dict
-    file_ids: list[str]
-    organization_id: int
+    files: list[DriveImportFile] = Field(..., min_length=1)
+
+
+class ImportResponse(BaseModel):
+    message: str
+    queued_files: int
+    index_name: str

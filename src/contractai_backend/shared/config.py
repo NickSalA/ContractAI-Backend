@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     QDRANT_API_KEY: str = Field(default=...)
     QDRANT_URL: str = Field(default=...)
     INDEX_NAME: str = Field(default="contracts_index")
+    DRIVE_INDEX_NAME: str = Field(default="drive_contracts_index")
 
     LLAMA_PARSE_API_KEY: str = Field(default=...)
 

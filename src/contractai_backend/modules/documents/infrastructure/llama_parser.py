@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 
 from llama_cloud import AsyncLlamaCloud
+from llama_index.core.schema import Document
 from llama_cloud.types.file_create_response import FileCreateResponse
 from llama_cloud.types.parsing_get_response import ParsingGetResponse
 
@@ -21,7 +22,7 @@ class LlamaParseExtractor(DocumentExtractor):
             max_retries=3,
         )
 
-    async def extract(self, file: bytes, filename: str) -> list:
+    async def extract(self, file: bytes, filename: str) -> list[Document]:
         """Extracts structured data from a document using LlamaParse."""
         extension: str = Path(filename).suffix.lower()
         temp_path = None
@@ -52,7 +53,14 @@ class LlamaParseExtractor(DocumentExtractor):
                 raise DocumentExtractionError(f"No se pudo extraer contenido de '{filename}' con LlamaParse.")
 
             return [
-                {"content": page.markdown, "metadata": {"filename": filename, "page_number": i + 1, "total_pages": len(result.markdown.pages)}}
+                Document(
+                    text=page.markdown,
+                    metadata={
+                        "filename": filename,
+                        "page_number": i + 1,
+                        "total_pages": len(result.markdown.pages),
+                    },
+                )
                 for i, page in enumerate(iterable=result.markdown.pages)
             ]
 

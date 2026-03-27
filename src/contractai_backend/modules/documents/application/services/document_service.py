@@ -80,6 +80,27 @@ class DocumentService:
 
         return payload
 
+    @staticmethod
+    def _enrich_vector_chunks(chunks: Sequence[Any], organization_id: int, form_data: dict[str, Any]) -> None:
+        source_metadata = form_data.get("source") if isinstance(form_data, dict) else None
+
+        for chunk in chunks:
+            metadata = getattr(chunk, "metadata", None)
+            if metadata is None:
+                metadata = {}
+                setattr(chunk, "metadata", metadata)
+
+            metadata["organization_id"] = str(organization_id)
+
+            if isinstance(source_metadata, dict):
+                provider = source_metadata.get("provider")
+                file_id = source_metadata.get("file_id")
+
+                if provider:
+                    metadata["source_provider"] = str(provider)
+                if file_id:
+                    metadata["source_file_id"] = str(file_id)
+
     async def _build_document_response(self, document: DocumentTable) -> DocumentResponse:
         """Busca los servicios asociados y ensambla el DTO final."""
         service_items = []
@@ -182,6 +203,8 @@ class DocumentService:
         parsed_document = await self.extractor.extract(file=file_data.content, filename=file_data.filename)
         if not parsed_document:
             raise DocumentExtractionError()
+
+        self._enrich_vector_chunks(chunks=parsed_document, organization_id=organization_id, form_data=normalized_form_data)
 
         save_doc: DocumentTable = await self.sql_repo.save(entity=new_document)
 
@@ -350,6 +373,8 @@ class DocumentService:
         parsed_document = await self.extractor.extract(file=file_data.content, filename=file_data.filename)
         if not parsed_document:
             raise DocumentExtractionError()
+
+        self._enrich_vector_chunks(chunks=parsed_document, organization_id=organization_id, form_data=doc.form_data)
 
         old_storage_path = doc.file_path
         new_storage_path = None

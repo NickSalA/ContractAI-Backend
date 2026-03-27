@@ -14,26 +14,42 @@ from ..domain import VectorDatabaseUnavailableError, VectorSearchError
 
 
 class QdrantVectorRepository(VectorRepository):
-    def __init__(self, collection_name: str, client: AsyncQdrantClient, index: VectorStoreIndex):
+    def __init__(self, collection_names: list[str], client: AsyncQdrantClient):
         self.client: AsyncQdrantClient = client
-        self.collection_name: str = collection_name
-        self.index: VectorStoreIndex = index
+        self.collection_names: list[str] = collection_names
 
     @classmethod
-    async def build(cls, client: AsyncQdrantClient, collection_name: str) -> "QdrantVectorRepository":
+    async def build(cls, client: AsyncQdrantClient, collection_names: list[str]) -> "QdrantVectorRepository":
         """Factory method para construir el repositorio, asegurando la creación del índice y la colección en Qdrant."""
         try:
-            vector_store = QdrantVectorStore(aclient=client, collection_name=collection_name)
-            index: VectorStoreIndex = VectorStoreIndex.from_vector_store(vector_store=vector_store)
-            return cls(collection_name=collection_name, client=client, index=index)
+            normalized_names = list(dict.fromkeys(name for name in collection_names if name))
+            return cls(collection_names=normalized_names, client=client)
         except Exception as e:
             raise VectorDatabaseUnavailableError(message=f"No se pudo conectar con Qdrant: {e!s}") from e
+
+    async def _retrieve_from_collection(self, collection_name: str, query: str, limit: int) -> list[NodeWithScore]:
+        exists = await self.client.collection_exists(collection_name=collection_name)
+        if not exists:
+            return []
+
+        vector_store = QdrantVectorStore(aclient=self.client, collection_name=collection_name)
+        index: VectorStoreIndex = VectorStoreIndex.from_vector_store(vector_store=vector_store)
+        retriever: BaseRetriever = index.as_retriever(similarity_top_k=limit)
+        return await retriever.aretrieve(str_or_query_bundle=query)
 
     async def search_documents(self, query: str, limit: int = 5) -> str:
         """Busca documentos relevantes en Qdrant usando el retriever de LlamaIndex y devuelve un string formateado."""
         try:
-            llama_retriever: BaseRetriever = self.index.as_retriever(similarity_top_k=limit)
-            nodes: list[NodeWithScore] = await llama_retriever.aretrieve(str_or_query_bundle=query)
+            nodes: list[NodeWithScore] = []
+            for collection_name in self.collection_names:
+                nodes.extend(await self._retrieve_from_collection(collection_name=collection_name, query=query, limit=limit))
+
+            nodes.sort(key=lambda node: node.score or 0.0, reverse=True)
+            nodes = nodes[:limit]
+
+            if not nodes:
+                return ""
+
             processor = MetadataReplacementPostProcessor(target_metadata_key="window")
             new_nodes: list[NodeWithScore] = processor.postprocess_nodes(nodes, query_bundle=QueryBundle(query))
         except Exception as e:

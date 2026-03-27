@@ -4,6 +4,7 @@ from loguru import logger
 from uvicorn import run
 
 from .shared.logger import setup
+from .shared.config import settings
 
 setup()
 

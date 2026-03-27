@@ -1,7 +1,9 @@
 import asyncio
+from pathlib import Path
+from typing import Any
 
 from loguru import logger
-from contractai_backend.modules.integrations.application.repositories import ICloudIntegrationProvider
+from contractai_backend.modules.integrations.application.repositories import ICloudIntegrationProvider, IDocumentIngestionTarget
 from contractai_backend.modules.integrations.domain import (
     CloudFileNotFoundError,
     CloudStorageIntegrationError,
@@ -10,8 +12,36 @@ from contractai_backend.modules.integrations.domain import (
 
 
 class IntegrationService:
-    def __init__(self, provider: ICloudIntegrationProvider):
+    def __init__(self, provider: ICloudIntegrationProvider, ingestion_target: IDocumentIngestionTarget, index_name: str):
         self.provider = provider
+        self.ingestion_target = ingestion_target
+        self.index_name = index_name
+
+    @staticmethod
+    def _resolve_content_type(metadata: dict[str, Any]) -> str:
+        mime_type = str(metadata.get("mimeType") or "")
+        if mime_type.startswith("application/vnd.google-apps."):
+            return "application/pdf"
+        return mime_type or "application/octet-stream"
+
+    @classmethod
+    def _resolve_filename(cls, metadata: dict[str, Any], file_id: str) -> str:
+        filename = str(metadata.get("name") or file_id).strip() or file_id
+        content_type = cls._resolve_content_type(metadata)
+        if content_type == "application/pdf" and Path(filename).suffix.lower() != ".pdf":
+            return f"{filename}.pdf"
+        return filename
+
+    @staticmethod
+    def _build_source_metadata(metadata: dict[str, Any], file_id: str, imported_by_user_id: int | None) -> dict[str, Any]:
+        source_metadata: dict[str, Any] = {
+            "file_id": file_id,
+            "mime_type": metadata.get("mimeType"),
+            "web_view_link": metadata.get("webViewLink"),
+        }
+        if imported_by_user_id is not None:
+            source_metadata["imported_by_user_id"] = imported_by_user_id
+        return source_metadata
 
     def get_authorization_url(self) -> str:
         return self.provider.get_auth_url()
@@ -22,20 +52,38 @@ class IntegrationService:
     async def retrieve_file(self, token: dict, file_id: str) -> bytes:
         return await self.provider.download_file(token, file_id)
 
-    async def process_import(self, token: dict, file_ids: list[str], organization_id: int) -> None:
-        logger.info(f"Iniciando importación directa. Organización: {organization_id}. Archivos: {len(file_ids)}")
+    async def process_import(self, token: dict, files: list[dict[str, Any]], organization_id: int, imported_by_user_id: int | None = None) -> None:
+        logger.info(f"Iniciando importación directa. Organización: {organization_id}. Archivos: {len(files)}")
 
-        for file_id in file_ids:
+        for file_item in files:
+            file_id = str(file_item.get("file_id") or "").strip()
+            document_payload = dict(file_item.get("document") or {})
             try:
+                if not file_id:
+                    raise ValueError("El archivo seleccionado no tiene un file_id válido.")
+
                 metadata = await self.provider.get_file_metadata(token, file_id)
-                file_name = metadata.get("name", "documento_desconocido")
+                file_name = self._resolve_filename(metadata=metadata, file_id=file_id)
+                content_type = self._resolve_content_type(metadata=metadata)
                 web_link = metadata.get("webViewLink", "")
+                source_metadata = self._build_source_metadata(metadata=metadata, file_id=file_id, imported_by_user_id=imported_by_user_id)
 
                 logger.debug(f"Extrayendo metadatos de: {file_name} | Link: {web_link}")
 
                 file_bytes = await self.retrieve_file(token, file_id)
+                created_document = await self.ingestion_target.ingest_drive_file(
+                    document_payload=document_payload,
+                    file_bytes=file_bytes,
+                    filename=file_name,
+                    content_type=content_type,
+                    organization_id=organization_id,
+                    source_metadata=source_metadata,
+                    index_name=self.index_name,
+                )
 
-                logger.success(f"¡Extracción exitosa! Archivo: {file_name} | Tamaño: {len(file_bytes)} bytes")
+                logger.success(
+                    f"¡Importación exitosa! Archivo: {file_name} | Tamaño: {len(file_bytes)} bytes | Documento: {getattr(created_document, 'id', None)}"
+                )
 
                 await asyncio.sleep(1)
 

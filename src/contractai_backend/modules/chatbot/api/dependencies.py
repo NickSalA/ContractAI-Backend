@@ -24,7 +24,9 @@ async def get_llm_provider(request: Request) -> ILLMProvider:
     pool = request.app.state.pool
     checkpointer = AsyncPostgresSaver(conn=pool)
 
-    vector_repo: QdrantVectorRepository = await QdrantVectorRepository.build(collection_name=settings.INDEX_NAME, client=await get_aclient())
+    vector_repo: QdrantVectorRepository = await QdrantVectorRepository.build(
+        collection_names=[settings.INDEX_NAME, settings.DRIVE_INDEX_NAME], client=await get_aclient()
+    )
     bc_tool = build_bc_tool(repo=vector_repo)
 
     graph_builder = ContractAgentGraph(tools=[bc_tool], llm=get_llm())
