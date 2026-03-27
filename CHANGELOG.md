@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.9.0 (2026-03-27)
+
+### Features
+
+- Implement template generation API and refactor document handling
+  ([`d745da0`](https://github.com/NickSalA/ContractAI-Backend/commit/d745da079dae64468d728714a65d3d7ff7f76cbe))
+
+
 ## v0.8.0 (2026-03-27)
 
 ### Features
