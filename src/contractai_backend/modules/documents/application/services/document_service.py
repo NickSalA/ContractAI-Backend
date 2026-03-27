@@ -7,7 +7,14 @@ from typing import Any
 from loguru import logger
 from pydantic import ValidationError as PydanticValidationError
 
-from ...api.schemas import CreateDocumentRequest, DocumentServiceItemRequest, FileRequest, UpdateDocumentRequest
+from ...api.schemas import (
+    CreateDocumentRequest,
+    DocumentServiceItemRequest,
+    FileRequest,
+    UpdateDocumentRequest,
+    DocumentResponse,
+    DocumentServiceItemResponse,
+)
 from ...domain.entities import DocumentServiceTable, DocumentTable, ServiceTable
 from ...domain.exceptions import (
     DocumentExtractionError,
@@ -73,6 +80,35 @@ class DocumentService:
 
         return payload
 
+    async def _build_document_response(self, document: DocumentTable) -> DocumentResponse:
+        """Busca los servicios asociados y ensambla el DTO final."""
+        service_items = []
+        if document.id is not None:
+            service_items = await self.sql_repo.get_document_services(document_id=document.id)
+
+        return self._serialize_document_response(document=document, service_items=service_items)
+
+    @staticmethod
+    def _serialize_document_response(document: DocumentTable, service_items: Sequence[DocumentServiceTable] | None = None) -> DocumentResponse:
+        """Mapea las entidades de BD al esquema de Pydantic."""
+        resolved_service_items = list(service_items or [])
+
+        return DocumentResponse(
+            id=document.id,
+            name=document.name,
+            client=document.client,
+            type=document.type,
+            start_date=document.start_date,
+            end_date=document.end_date,
+            form_data=document.form_data,
+            state=document.state,
+            file_path=document.file_path,
+            file_name=document.file_name,
+            service_items=[DocumentServiceItemResponse.model_validate(item) for item in resolved_service_items],
+            created_at=document.created_at,
+            updated_at=document.updated_at,
+        )
+
     @staticmethod
     def _validate_service_periods(
         document_start_date: date,
@@ -101,6 +137,13 @@ class DocumentService:
         if missing_ids:
             raise DocumentValidationError(message=f"Los servicios con IDs {missing_ids} no existen o no pertenecen a la organización actual.")
 
+    async def _get_document_entity(self, id: int, organization_id: int) -> DocumentTable | None:
+        """Obtiene la entidad ORM cruda de la base de datos (solo para uso interno)."""
+        doc = await self.sql_repo.get_by_id(id)
+        if doc is None or doc.organization_id != organization_id:
+            return None
+        return doc
+
     async def list_services(self, organization_id: int) -> Sequence[ServiceTable]:
         """Returns the service catalog for the current organization."""
         return await self.sql_repo.get_services(organization_id=organization_id)
@@ -111,7 +154,7 @@ class DocumentService:
         file_data: FileRequest,
         organization_id: int,
         index_name: str = "contracts_index",
-    ) -> DocumentTable:
+    ) -> DocumentResponse:
         """Creates a new document, orchestrating SQL, Storage, and Vector DB."""
         await self._validate_requested_services(organization_id=organization_id, service_items=data.service_items)
         self._validate_service_currency_alignment(service_items=data.service_items)
@@ -168,7 +211,7 @@ class DocumentService:
             save_doc.file_name = file_data.filename
             updated_saved_doc: DocumentTable = await self.sql_repo.update(entity=save_doc)
 
-            return updated_saved_doc
+            return await self._build_document_response(document=updated_saved_doc)
 
         except Exception as e:
             if vectors_added:
@@ -190,20 +233,25 @@ class DocumentService:
 
             raise DocumentTransactionError(operation="create", details=str(object=e)) from e
 
-    async def get_documents(self, organization_id: int) -> Sequence[DocumentTable]:
-        """Retrieves all documents from the relational repository."""
-        return await self.sql_repo.get_all(filters={"organization_id": organization_id})
+    async def get_documents(self, organization_id: int) -> Sequence[DocumentResponse]:  # <-- Retorna DocumentResponse, no DocumentTable
+        """Obtiene todos los documentos y los ensambla con sus servicios asociados."""
+        docs: Sequence[DocumentTable] = await self.sql_repo.get_all(filters={"organization_id": organization_id})
+        document_ids: list[int] = [doc.id for doc in docs if doc.id is not None]
+        service_items_by_document = {}
+        if document_ids:
+            service_items_by_document = await self.sql_repo.get_document_services_by_document_ids(document_ids=document_ids)
+        return [self._serialize_document_response(document=doc, service_items=service_items_by_document.get(doc.id, [])) for doc in docs]
 
-    async def get_document(self, id: int, organization_id: int) -> DocumentTable | None:
+    async def get_document(self, id: int, organization_id: int) -> DocumentResponse | None:
         """Retrieves a single document by ID from the relational repository."""
         doc = await self.sql_repo.get_by_id(id)
         if doc is None or doc.organization_id != organization_id:
             return None
-        return doc
+        return await self._build_document_response(document=doc)
 
     async def delete_document(self, id: int, organization_id: int, index_name: str = "contracts_index") -> bool:
         """Deletes a document orchestrating SQL, VectorDB, and Storage."""
-        doc: DocumentTable | None = await self.get_document(id=id, organization_id=organization_id)
+        doc: DocumentResponse | None = await self.get_document(id=id, organization_id=organization_id)
         if not doc:
             raise DocumentNotFoundError(document_id=id)
 
@@ -227,9 +275,9 @@ class DocumentService:
         organization_id: int,
         file_data: FileRequest | None = None,
         index_name: str = "contracts_index",
-    ) -> DocumentTable:
+    ) -> DocumentResponse:
         """Updates an existing document orchestrating SQL, VectorDB, and Storage."""
-        doc: DocumentTable | None = await self.get_document(id=id, organization_id=organization_id)
+        doc: DocumentTable | None = await self._get_document_entity(id=id, organization_id=organization_id)
         if not doc:
             raise DocumentNotFoundError(document_id=id)
 
@@ -294,7 +342,7 @@ class DocumentService:
                 )
                 await self.sql_repo.replace_document_services(document_id=doc.id, service_items=service_entities)
             updated_doc = await self.sql_repo.update(entity=doc)
-            return updated_doc
+            return await self._build_document_response(document=updated_doc)
 
         if not file_data.filename or file_data.content_type is None:
             raise InvalidDocumentFileError()
@@ -335,7 +383,7 @@ class DocumentService:
                 except Exception:
                     pass
 
-            return updated_doc
+            return await self._build_document_response(document=updated_doc)
 
         except Exception as e:
             if new_storage_path:
@@ -348,7 +396,7 @@ class DocumentService:
 
     async def get_document_signed_url(self, id: int, organization_id: int, expires_in: int = 3600) -> str:
         """Returns a temporary signed URL for a stored document file."""
-        doc: DocumentTable | None = await self.get_document(id=id, organization_id=organization_id)
+        doc: DocumentTable | None = await self._get_document_entity(id=id, organization_id=organization_id)
         if not doc:
             raise DocumentNotFoundError(document_id=id)
         if doc.file_path is None:

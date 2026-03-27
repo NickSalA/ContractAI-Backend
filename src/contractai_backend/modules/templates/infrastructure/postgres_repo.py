@@ -1,4 +1,5 @@
 """Repositorio de Plantillas utilizando SQLModel y AsyncSession para PostgreSQL."""
+from collections.abc import Sequence
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -22,3 +23,9 @@ class SQLModelTemplateRepository(PostgresBaseRepository[TemplateTable], ITemplat
             query = query.where(self.model.organization_id is None)
         result = await self.session.exec(statement=query)
         return result.first()
+
+    async def list_by_organization(self, organization_id: int) -> Sequence[TemplateTable]:
+        """Lista las plantillas de una organización."""
+        query = select(self.model).where(self.model.organization_id == organization_id)
+        result = await self.session.exec(statement=query)
+        return result.all()

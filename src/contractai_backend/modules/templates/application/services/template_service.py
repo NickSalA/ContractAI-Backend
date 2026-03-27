@@ -1,5 +1,7 @@
 """Service layer for handling template-related operations, including contract generation based on templates and organization data."""
 
+from git import Sequence
+
 from datetime import datetime
 from typing import Any
 
@@ -73,3 +75,13 @@ class TemplateService:
         nuevo_documento = await self.document_adapter.save_generated_document(document_payload=document_payload, file=pdf_bytes)
 
         return nuevo_documento
+
+    async def get_template(self, template_id: int, organization_id: int) -> TemplateTable | None:
+        """Obtiene los detalles de una plantilla asegurando que pertenezca a la organización."""
+        template: TemplateTable | None = await self.template_repo.get_template_by_id(template_id=template_id, organization_id=organization_id)
+        return template
+
+    async def list_templates(self, organization_id: int) -> Sequence[TemplateTable]:
+        """Lista todas las plantillas disponibles para una organización."""
+        templates: Sequence[TemplateTable] = await self.template_repo.list_by_organization(organization_id=organization_id)
+        return templates

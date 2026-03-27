@@ -11,16 +11,6 @@ class DocumentRepository(BaseRepository[DocumentTable]):
     """Interface for the Document Repository."""
 
     @abstractmethod
-    async def get_by_client_name(self, client_name: str) -> Sequence[DocumentTable]:
-        """Lists all documents for a given client."""
-        pass
-
-    @abstractmethod
-    async def get_active_documents(self) -> Sequence[DocumentTable]:
-        """Lists all active documents."""
-        pass
-
-    @abstractmethod
     async def get_document_services(self, document_id: int) -> Sequence[DocumentServiceTable]:
         """Lists the services associated to a document."""
         pass
