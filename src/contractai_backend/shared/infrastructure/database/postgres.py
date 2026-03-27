@@ -19,7 +19,17 @@ if DATABASE_URL and "localhost" not in DATABASE_URL:
     ctx.verify_mode: Literal[ssl.VerifyMode.CERT_NONE] = ssl.CERT_NONE
     connect_args: dict[str, ssl.SSLContext] = {"ssl": ctx}
 
-engine: AsyncEngine = create_async_engine(url=DATABASE_URL, echo=False, future=True, pool_pre_ping=True, connect_args=connect_args)
+engine: AsyncEngine = create_async_engine(
+    url=DATABASE_URL,
+    echo=False,
+    future=True,
+    pool_pre_ping=True,
+    pool_size=settings.DATABASE_POOL_SIZE,
+    max_overflow=settings.DATABASE_MAX_OVERFLOW,
+    pool_timeout=settings.DATABASE_POOL_TIMEOUT,
+    pool_recycle=settings.DATABASE_POOL_RECYCLE,
+    connect_args=connect_args,
+)
 
 
 async def get_session():

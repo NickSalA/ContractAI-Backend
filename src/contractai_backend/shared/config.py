@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     DATABASE_USER: str | None = Field(default=...)
     DATABASE_HOST: str | None = Field(default=...)
     DATABASE_PORT: int | None = Field(default=5432)
+    DATABASE_POOL_SIZE: int = Field(default=2)
+    DATABASE_MAX_OVERFLOW: int = Field(default=0)
+    DATABASE_POOL_TIMEOUT: int = Field(default=30)
+    DATABASE_POOL_RECYCLE: int = Field(default=1800)
+    CHECKPOINTER_POOL_MIN_SIZE: int = Field(default=1)
+    CHECKPOINTER_POOL_MAX_SIZE: int = Field(default=2)
 
     SUPABASE_URL: str = Field(default=...)
     SUPABASE_SECRET_KEY: str = Field(default=...)
@@ -72,12 +78,7 @@ class Settings(BaseSettings):
             return "sqlite:///./test.db"
         return f"postgresql://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}?sslmode=require"
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=True,
-        extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore")
 
 
 try:
