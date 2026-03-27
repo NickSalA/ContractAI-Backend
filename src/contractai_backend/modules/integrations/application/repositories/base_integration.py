@@ -10,7 +10,7 @@ class ICloudIntegrationProvider(ABC):
         pass
 
     @abstractmethod
-    async def list_files(self, token: dict, folder_id: str | None = None) -> list[dict]:
+    async def get_file_metadata(self, token: dict, file_id: str) -> dict:
         pass
 
     @abstractmethod
