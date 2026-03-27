@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.10.2 (2026-03-27)
+
+### Bug Fixes
+
+- Apply barrel pattern for chatbot and integrations modules
+  ([`4c2bff1`](https://github.com/NickSalA/ContractAI-Backend/commit/4c2bff1b0db95f86762fe9b7bde068473c20fa94))
+
+
 ## v0.10.1 (2026-03-27)
 
 ### Bug Fixes
