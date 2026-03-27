@@ -14,6 +14,7 @@ from .modules.chatbot.infrastructure.agent.checkpointer import init_checkpointer
 from .modules.documents.api.routers import router as documents_router
 from .modules.users.api.routers import auth_router, users_router
 from contractai_backend.modules.integrations.api.routers import router as integrations_router
+from .modules.notifications.api.routers import router as notifications_router
 from .modules.documents.infrastructure import configure_embedding
 from .shared.api.error_handlers import app_error_handler, global_exception_handler, http_exception_handler, validation_exception_handler
 from .shared.api.middlewares import LoguruMiddleware
@@ -31,9 +32,10 @@ def create() -> FastAPI:
         configure_embedding()
         pool = await init_checkpointer()
         app.state.pool = pool
+
         yield
+
         await app.state.pool.close()
-        # Aquí puedes agregar cualquier lógica de limpieza que necesites
 
     app = FastAPI(title=settings.PROJECT_NAME, version=__version__, lifespan=lifespan)
 
@@ -43,6 +45,7 @@ def create() -> FastAPI:
     app.include_router(router=chat_router, prefix="/chatbot", tags=["Chatbot"])
     app.include_router(router=conversation_router, prefix="/conversations", tags=["Conversaciones"])
     app.include_router(router=integrations_router, prefix="/integrations", tags=["Integraciones"])
+    app.include_router(router=notifications_router, prefix="/notifications", tags=["Notificaciones"])
 
     app.add_middleware(
         middleware_class=CORSMiddleware,  # ty:ignore[invalid-argument-type]
