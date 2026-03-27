@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = Field(default=...)
     GOOGLE_REDIRECT_URI: str = Field(default=...)
 
+    GMAIL_SENDER: str | None = Field(default=None)
+    GMAIL_APP_PASSWORD: str | None = Field(default=None)
+
     @property
     def DATABASE_URL(self) -> str:  # noqa: N802
         """Recupera la URL de la base de datos desde Key Vault o variable de entorno."""

@@ -1,17 +1,19 @@
-""""Dependencia para extraer el token Bearer del header de autorización."""
+"""Dependencia para extraer el token Bearer del header de autorización."""
 
-from fastapi import Header
+from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from ....core.exceptions.base import UnauthorizedError
 
+_bearer = HTTPBearer(auto_error=False)
 
-def get_token(authorization: str | None = Header(default=None)) -> str:
-    """Extrae el token del header 'Authorization: Bearer <token>'."""
-    if not authorization:
+
+def get_token(credentials: HTTPAuthorizationCredentials | None = Depends(_bearer)) -> str:
+    """Extrae el token del header 'Authorization: Bearer <token>'.
+
+    Usar HTTPBearer (en lugar de Header genérico) registra el security scheme
+    en OpenAPI, lo que hace funcionar el botón 'Authorize' en Swagger UI.
+    """
+    if not credentials:
         raise UnauthorizedError("No se proporcionó un token de autenticación")
-
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer" or not token:
-        raise UnauthorizedError("El formato del token debe ser 'Bearer <token>'")
-
-    return token
+    return credentials.credentials
