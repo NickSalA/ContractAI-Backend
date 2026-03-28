@@ -1,12 +1,12 @@
 """Adaptador para conectar el módulo de plantillas con el módulo de documentos."""
 
 from ...documents.api.schemas import CreateDocumentRequest, FileRequest
-from ...documents.application.services import DocumentService
+from ...documents.application.services import DocumentCommandService
 from ..application.repositories.base_relational import IDocumentModuleAdapter
 
 
 class DocumentModuleAdapter(IDocumentModuleAdapter):
-    def __init__(self, doc_service: DocumentService):
+    def __init__(self, doc_service: DocumentCommandService):
         self.doc_service = doc_service
 
     async def save_generated_document(self, document_payload: dict, file: bytes):

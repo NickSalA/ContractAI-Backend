@@ -9,7 +9,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from contractai_backend.core.exceptions.base import InternalServerError, ServiceUnavailableError
-from contractai_backend.modules.documents.domain.entities import DocumentTable
+from contractai_backend.modules.documents.domain import DocumentTable
 from contractai_backend.modules.documents.domain.value_objs import DocumentState
 from contractai_backend.modules.notifications.api.dependencies import get_email_alert_service
 from contractai_backend.modules.notifications.api.schemas import NotificationResponse

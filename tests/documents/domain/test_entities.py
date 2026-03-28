@@ -5,7 +5,14 @@ from datetime import date
 import pytest
 from pydantic import ValidationError
 
-from contractai_backend.modules.documents.domain.entities import DocumentServiceTable, DocumentTable, ServiceTable
+from contractai_backend.modules.documents.domain import (
+    DocumentServiceTable,
+    DocumentTable,
+    ServiceTable,
+    validate_service_currency_alignment,
+    validate_service_periods,
+)
+from contractai_backend.modules.documents.domain.exceptions import DocumentValidationError
 from contractai_backend.modules.documents.domain.value_objs import CurrencyType, DocumentState, DocumentType
 
 
@@ -120,3 +127,40 @@ class TestSupportingTables:
     def test_service_table_requires_non_empty_name(self):
         with pytest.raises(ValidationError, match="Service name cannot be empty"):
             ServiceTable.model_validate({"organization_id": 1, "name": "   "})
+
+
+class TestDocumentServiceRules:
+    def test_currency_alignment_raises_for_mixed_currencies(self):
+        items = [
+            _make_service_item(currency=CurrencyType.USD),
+            _make_service_item(service_id=3, currency=CurrencyType.PEN),
+        ]
+
+        with pytest.raises(DocumentValidationError, match="misma moneda"):
+            validate_service_currency_alignment(items)
+
+    def test_service_periods_raise_outside_document_range(self):
+        items = [
+            _make_service_item(start_date=date(2023, 12, 1), end_date=date(2024, 6, 1)),
+        ]
+
+        with pytest.raises(DocumentValidationError, match="dentro del rango"):
+            validate_service_periods(
+                document_start_date=date(2024, 1, 1),
+                document_end_date=date(2024, 12, 31),
+                service_items=items,
+            )
+
+
+def _make_service_item(**overrides) -> DocumentServiceTable:
+    payload = {
+        "document_id": 1,
+        "service_id": 2,
+        "description": "Hosting",
+        "value": 100.0,
+        "currency": CurrencyType.USD,
+        "start_date": date(2024, 1, 1),
+        "end_date": date(2024, 6, 1),
+    }
+    payload.update(overrides)
+    return DocumentServiceTable.model_validate(payload)

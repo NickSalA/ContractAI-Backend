@@ -2,12 +2,12 @@ from datetime import UTC, datetime
 from typing import Any
 
 from ...documents.api.schemas import CreateDocumentRequest, FileRequest
-from ...documents.application.services import DocumentService
+from ...documents.application.services import DocumentCommandService
 from ..application.repositories import IDocumentIngestionTarget
 
 
 class DocumentIngestionAdapter(IDocumentIngestionTarget):
-    def __init__(self, document_service: DocumentService):
+    def __init__(self, document_service: DocumentCommandService):
         self.document_service = document_service
 
     @staticmethod

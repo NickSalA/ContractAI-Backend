@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
-from contractai_backend.modules.documents.domain.entities import DocumentServiceTable, DocumentTable, ServiceTable
+from contractai_backend.modules.documents.domain import DocumentServiceTable, DocumentTable, ServiceTable
 from contractai_backend.modules.documents.domain.exceptions import DocumentDatabaseError, DocumentDatabaseUnavailableError
 from contractai_backend.modules.documents.domain.value_objs import CurrencyType, DocumentState, DocumentType
 from contractai_backend.modules.documents.infrastructure.postgres_repo import SQLModelDocumentRepository

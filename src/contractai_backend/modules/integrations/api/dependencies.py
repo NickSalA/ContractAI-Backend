@@ -1,7 +1,7 @@
 from fastapi import Depends
 
-from contractai_backend.modules.documents.api.dependencies import get_document_service
-from contractai_backend.modules.documents.application.services import DocumentService
+from contractai_backend.modules.documents.api.dependencies import get_document_command_service
+from contractai_backend.modules.documents.application.services import DocumentCommandService
 from contractai_backend.modules.integrations.application import IntegrationService
 from contractai_backend.modules.integrations.infrastructure import DocumentIngestionAdapter, GoogleDriveProvider
 from contractai_backend.shared.config import settings
@@ -13,7 +13,9 @@ def get_cloud_storage_provider() -> GoogleDriveProvider:
     )
 
 
-def get_document_ingestion_target(document_service: DocumentService = Depends(get_document_service)) -> DocumentIngestionAdapter:
+def get_document_ingestion_target(
+    document_service: DocumentCommandService = Depends(get_document_command_service),
+) -> DocumentIngestionAdapter:
     return DocumentIngestionAdapter(document_service=document_service)
 
 

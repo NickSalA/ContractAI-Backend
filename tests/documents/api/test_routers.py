@@ -10,25 +10,31 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from contractai_backend.core.exceptions.base import AppError
-from contractai_backend.modules.documents.api.dependencies import get_document_repository, get_document_service
+from contractai_backend.modules.documents.api.dependencies import (
+    get_document_command_service,
+    get_document_query_service,
+    get_service_catalog_service,
+)
 from contractai_backend.modules.documents.api.routers import router
-from contractai_backend.modules.documents.domain.entities import DocumentTable, ServiceTable
+from contractai_backend.modules.documents.domain import DocumentTable, ServiceTable
 from contractai_backend.modules.documents.domain.exceptions import DocumentFileMissingError, DocumentNotFoundError
 from contractai_backend.modules.documents.domain.value_objs import DocumentState, DocumentType
 from contractai_backend.shared.api.dependencies.security import get_current_user
 from contractai_backend.shared.api.error_handlers import app_error_handler
 
 
-def _make_app(mock_service=None, mock_repo=None) -> FastAPI:
+def _make_app(mock_document_service=None, mock_query_service=None, mock_catalog_service=None) -> FastAPI:
     app = FastAPI()
     app.include_router(router, prefix="/documents")
     app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id=1, organization_id=1)
     app.add_exception_handler(AppError, app_error_handler)  # type: ignore[arg-type]
 
-    if mock_service:
-        app.dependency_overrides[get_document_service] = lambda: mock_service
-    if mock_repo:
-        app.dependency_overrides[get_document_repository] = lambda: mock_repo
+    if mock_document_service is not None:
+        app.dependency_overrides[get_document_command_service] = lambda: mock_document_service
+    if mock_query_service is not None:
+        app.dependency_overrides[get_document_query_service] = lambda: mock_query_service
+    if mock_catalog_service is not None:
+        app.dependency_overrides[get_service_catalog_service] = lambda: mock_catalog_service
 
     return app
 
@@ -67,11 +73,10 @@ class TestListDocuments:
     @pytest.mark.asyncio
     async def test_list_documents_returns_200(self):
         docs = [_make_doc(1), _make_doc(2)]
-        mock_repo = AsyncMock()
-        mock_repo.get_all.return_value = docs
-        mock_repo.get_document_services_by_document_ids.return_value = {1: [], 2: []}
+        mock_query_service = AsyncMock()
+        mock_query_service.get_documents.return_value = docs
 
-        app = _make_app(mock_repo=mock_repo)
+        app = _make_app(mock_query_service=mock_query_service)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/documents/")
 
@@ -83,10 +88,10 @@ class TestListDocuments:
 class TestListServices:
     @pytest.mark.asyncio
     async def test_list_services_returns_200(self):
-        mock_service = AsyncMock()
-        mock_service.list_services.return_value = [ServiceTable(id=1, organization_id=1, name="Hosting")]
+        mock_catalog_service = AsyncMock()
+        mock_catalog_service.list_services.return_value = [ServiceTable(id=1, organization_id=1, name="Hosting")]
 
-        app = _make_app(mock_service=mock_service, mock_repo=AsyncMock())
+        app = _make_app(mock_catalog_service=mock_catalog_service)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/documents/services")
 
@@ -98,11 +103,10 @@ class TestGetDocument:
     @pytest.mark.asyncio
     async def test_get_document_returns_200(self):
         doc = _make_doc()
-        mock_repo = AsyncMock()
-        mock_repo.get_by_id.return_value = doc
-        mock_repo.get_document_services.return_value = []
+        mock_query_service = AsyncMock()
+        mock_query_service.get_document.return_value = doc
 
-        app = _make_app(mock_repo=mock_repo)
+        app = _make_app(mock_query_service=mock_query_service)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/documents/1")
 
@@ -112,10 +116,10 @@ class TestGetDocument:
 
     @pytest.mark.asyncio
     async def test_get_document_not_found_returns_404(self):
-        mock_repo = AsyncMock()
-        mock_repo.get_by_id.return_value = None
+        mock_query_service = AsyncMock()
+        mock_query_service.get_document.return_value = None
 
-        app = _make_app(mock_repo=mock_repo)
+        app = _make_app(mock_query_service=mock_query_service)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/documents/99")
 
@@ -126,13 +130,10 @@ class TestCreateDocument:
     @pytest.mark.asyncio
     async def test_create_document_returns_201(self):
         doc = _make_doc()
-        mock_service = AsyncMock()
-        mock_service.create_document.return_value = doc
+        mock_document_service = AsyncMock()
+        mock_document_service.create_document.return_value = doc
 
-        mock_repo = AsyncMock()
-        mock_repo.get_document_services.return_value = []
-
-        app = _make_app(mock_service=mock_service, mock_repo=mock_repo)
+        app = _make_app(mock_document_service=mock_document_service)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.post(
                 "/documents/",
@@ -145,9 +146,8 @@ class TestCreateDocument:
 
     @pytest.mark.asyncio
     async def test_create_document_invalid_json_returns_400(self):
-        mock_service = AsyncMock()
-        mock_repo = AsyncMock()
-        app = _make_app(mock_service=mock_service, mock_repo=mock_repo)
+        mock_document_service = AsyncMock()
+        app = _make_app(mock_document_service=mock_document_service)
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.post(
@@ -162,10 +162,10 @@ class TestCreateDocument:
 class TestDeleteDocument:
     @pytest.mark.asyncio
     async def test_delete_document_returns_204(self):
-        mock_service = AsyncMock()
-        mock_service.delete_document.return_value = True
+        mock_document_service = AsyncMock()
+        mock_document_service.delete_document.return_value = True
 
-        app = _make_app(mock_service=mock_service, mock_repo=AsyncMock())
+        app = _make_app(mock_document_service=mock_document_service)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.delete("/documents/1")
 
@@ -173,10 +173,10 @@ class TestDeleteDocument:
 
     @pytest.mark.asyncio
     async def test_delete_document_not_found_returns_404(self):
-        mock_service = AsyncMock()
-        mock_service.delete_document.side_effect = DocumentNotFoundError(document_id=99)
+        mock_document_service = AsyncMock()
+        mock_document_service.delete_document.side_effect = DocumentNotFoundError(document_id=99)
 
-        app = _make_app(mock_service=mock_service, mock_repo=AsyncMock())
+        app = _make_app(mock_document_service=mock_document_service)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.delete("/documents/99")
 
@@ -186,10 +186,10 @@ class TestDeleteDocument:
 class TestGetDocumentFileUrl:
     @pytest.mark.asyncio
     async def test_get_file_url_returns_200(self):
-        mock_service = AsyncMock()
-        mock_service.get_document_signed_url.return_value = "https://storage/signed-url"
+        mock_document_service = AsyncMock()
+        mock_document_service.get_document_signed_url.return_value = "https://storage/signed-url"
 
-        app = _make_app(mock_service=mock_service, mock_repo=AsyncMock())
+        app = _make_app(mock_document_service=mock_document_service)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/documents/1/file-url")
 
@@ -198,10 +198,10 @@ class TestGetDocumentFileUrl:
 
     @pytest.mark.asyncio
     async def test_get_file_url_no_file_returns_404(self):
-        mock_service = AsyncMock()
-        mock_service.get_document_signed_url.side_effect = DocumentFileMissingError(document_id=1)
+        mock_document_service = AsyncMock()
+        mock_document_service.get_document_signed_url.side_effect = DocumentFileMissingError(document_id=1)
 
-        app = _make_app(mock_service=mock_service, mock_repo=AsyncMock())
+        app = _make_app(mock_document_service=mock_document_service)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/documents/1/file-url")
 
@@ -214,13 +214,10 @@ class TestUpdateDocument:
         updated = _make_doc()
         updated.name = "Nombre Actualizado"
 
-        mock_service = AsyncMock()
-        mock_service.update_document.return_value = updated
+        mock_document_service = AsyncMock()
+        mock_document_service.update_document.return_value = updated
 
-        mock_repo = AsyncMock()
-        mock_repo.get_document_services.return_value = []
-
-        app = _make_app(mock_service=mock_service, mock_repo=mock_repo)
+        app = _make_app(mock_document_service=mock_document_service)
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.patch(
                 "/documents/1",
@@ -232,11 +229,10 @@ class TestUpdateDocument:
 
     @pytest.mark.asyncio
     async def test_update_document_not_found_returns_404(self):
-        mock_service = AsyncMock()
-        mock_service.update_document.side_effect = DocumentNotFoundError(document_id=99)
+        mock_document_service = AsyncMock()
+        mock_document_service.update_document.side_effect = DocumentNotFoundError(document_id=99)
 
-        mock_repo = AsyncMock()
-        app = _make_app(mock_service=mock_service, mock_repo=mock_repo)
+        app = _make_app(mock_document_service=mock_document_service)
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.patch(

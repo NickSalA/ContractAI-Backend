@@ -9,7 +9,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from contractai_backend.core.exceptions.base import InternalServerError, ServiceUnavailableError
-from contractai_backend.modules.documents.domain.entities import DocumentTable
+from contractai_backend.modules.documents.domain import DocumentTable
 from contractai_backend.modules.documents.domain.value_objs import DocumentState
 from contractai_backend.modules.notifications.infrastructure.gmail_service import GmailService
 from contractai_backend.modules.users.domain.entities import UserTable
@@ -17,9 +17,9 @@ from contractai_backend.modules.users.domain.value_objs import UserRole
 
 # (días_restantes, etiqueta, color_badge, color_bg, color_borde, color_texto, color_subtexto, emoji)
 _THRESHOLD_STYLES: list[tuple[int, str, str, str, str, str, str, str]] = [
-    (3,  "VENCE EN 3 DÍAS — CRÍTICO",   "#EF4444", "#FEF2F2", "#FECACA", "#991B1B", "#B91C1C", "🚨"),
-    (7,  "VENCE EN 7 DÍAS — ADVERTENCIA","#F97316", "#FFF7ED", "#FED7AA", "#9A3412", "#C2410C", "⚠️"),
-    (15, "VENCE EN 15 DÍAS — AVISO",     "#3B82F6", "#EFF6FF", "#BFDBFE", "#1E40AF", "#1D4ED8", "📋"),
+    (3, "VENCE EN 3 DÍAS — CRÍTICO", "#EF4444", "#FEF2F2", "#FECACA", "#991B1B", "#B91C1C", "🚨"),
+    (7, "VENCE EN 7 DÍAS — ADVERTENCIA", "#F97316", "#FFF7ED", "#FED7AA", "#9A3412", "#C2410C", "⚠️"),
+    (15, "VENCE EN 15 DÍAS — AVISO", "#3B82F6", "#EFF6FF", "#BFDBFE", "#1E40AF", "#1D4ED8", "📋"),
 ]
 
 
@@ -83,9 +83,7 @@ class EmailAlertService:
 
     # ─── Queries ────────────────────────────────────────────────────────────────
 
-    async def _get_expiring_documents(
-        self, organization_id: int, target_date: date
-    ) -> list[DocumentTable]:
+    async def _get_expiring_documents(self, organization_id: int, target_date: date) -> list[DocumentTable]:
         try:
             query = select(DocumentTable).where(
                 DocumentTable.organization_id == organization_id,
@@ -149,9 +147,7 @@ class EmailAlertService:
 
         return "\n".join(sections)
 
-    def _build_email_html(
-        self, name: str, total: int, sections: str, date_str: str
-    ) -> str:
+    def _build_email_html(self, name: str, total: int, sections: str, date_str: str) -> str:
         return f"""<!DOCTYPE html>
 <html lang="es">
 <head>

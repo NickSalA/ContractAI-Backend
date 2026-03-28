@@ -1,36 +1,68 @@
-"""Interface for the Document Repository."""
+"""Relational repository contracts for the documents module."""
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from typing import Any
 
-from .....core.application.base import BaseRepository
-from ...domain.entities import DocumentServiceTable, DocumentTable, ServiceTable
+from ...domain import DocumentServiceTable, DocumentTable, ServiceTable
 
 
-class DocumentRepository(BaseRepository[DocumentTable]):
-    """Interface for the Document Repository."""
+class DocumentQueryRepository(ABC):
+    @abstractmethod
+    async def get_by_id(self, id: int) -> DocumentTable | None:
+        """Returns one document by id."""
+        pass
+
+    @abstractmethod
+    async def get_all(self, filters: dict[str, Any] | None = None) -> Sequence[DocumentTable]:
+        """Lists documents matching optional filters."""
+        pass
 
     @abstractmethod
     async def get_document_services(self, document_id: int) -> Sequence[DocumentServiceTable]:
-        """Lists the services associated to a document."""
+        """Lists service items for one document."""
         pass
 
     @abstractmethod
     async def get_document_services_by_document_ids(self, document_ids: Sequence[int]) -> dict[int, Sequence[DocumentServiceTable]]:
-        """Lists services grouped by document id for many documents."""
+        """Lists service items grouped by document id."""
+        pass
+
+
+class DocumentCommandRepository(ABC):
+    @abstractmethod
+    async def get_by_id(self, id: int) -> DocumentTable | None:
+        """Returns one document by id."""
+        pass
+
+    @abstractmethod
+    async def save(self, entity: DocumentTable) -> DocumentTable:
+        """Persists a new document."""
+        pass
+
+    @abstractmethod
+    async def update(self, entity: DocumentTable) -> DocumentTable:
+        """Persists changes to a document."""
+        pass
+
+    @abstractmethod
+    async def delete(self, id: int) -> bool:
+        """Deletes a document by id."""
         pass
 
     @abstractmethod
     async def replace_document_services(self, document_id: int, service_items: Sequence[DocumentServiceTable]) -> Sequence[DocumentServiceTable]:
-        """Replaces the set of services associated to a document."""
+        """Replaces all service items for a document."""
         pass
 
+
+class ServiceCatalogRepository(ABC):
     @abstractmethod
     async def get_services_by_ids(self, organization_id: int, service_ids: Sequence[int]) -> Sequence[ServiceTable]:
-        """Retrieves the services that belong to an organization by id."""
+        """Returns catalog services for the given ids."""
         pass
 
     @abstractmethod
     async def get_services(self, organization_id: int) -> Sequence[ServiceTable]:
-        """Retrieves the service catalog for an organization."""
+        """Lists the catalog for one organization."""
         pass

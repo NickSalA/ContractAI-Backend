@@ -8,10 +8,9 @@ from fastapi import APIRouter, Depends, Form, Response, UploadFile, status
 from pydantic import ValidationError
 
 from ....shared.api.dependencies.security import CurrentUserDep
-from ..application.repositories import DocumentRepository
-from ..application.services import DocumentService
+from ..application.services import DocumentCommandService, DocumentQueryService, ServiceCatalogService
 from ..domain.exceptions import DocumentNotFoundError, DocumentValidationError, InvalidDocumentFileError
-from .dependencies import get_document_repository, get_document_service
+from .dependencies import get_document_command_service, get_document_query_service, get_service_catalog_service
 from .schemas import (
     CreateDocumentRequest,
     DocumentFileUrlResponse,
@@ -23,14 +22,11 @@ from .schemas import (
 
 router = APIRouter()
 
-DocumentServiceDep = Annotated[DocumentService, Depends(get_document_service)]
-DocumentRepositoryDep = Annotated[DocumentRepository, Depends(get_document_repository)]
-
 
 @router.post(path="/", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 async def create_document(
     file: UploadFile,
-    service: DocumentServiceDep,
+    service: Annotated[DocumentCommandService, Depends(get_document_command_service)],
     current_user: CurrentUserDep,
     document: str = Form(...),
 ) -> DocumentResponse:
@@ -56,21 +52,31 @@ async def create_document(
 
 
 @router.get(path="/", response_model=Sequence[DocumentResponse])
-async def list_documents(service: DocumentServiceDep, current_user: CurrentUserDep) -> Sequence[DocumentResponse]:
+async def list_documents(
+    service: Annotated[DocumentQueryService, Depends(get_document_query_service)],
+    current_user: CurrentUserDep,
+) -> Sequence[DocumentResponse]:
     """Endpoint to list documents with optional filters."""
     documents: Sequence[DocumentResponse] = await service.get_documents(organization_id=current_user.organization_id)
     return documents
 
 
 @router.get(path="/services", response_model=Sequence[ServiceCatalogItemResponse])
-async def list_services(service: DocumentServiceDep, current_user: CurrentUserDep) -> Sequence[ServiceCatalogItemResponse]:
+async def list_services(
+    service: Annotated[ServiceCatalogService, Depends(get_service_catalog_service)],
+    current_user: CurrentUserDep,
+) -> Sequence[ServiceCatalogItemResponse]:
     """Endpoint to list available services for the current organization."""
     services = await service.list_services(organization_id=current_user.organization_id)
     return [ServiceCatalogItemResponse.model_validate(item) for item in services]
 
 
 @router.get(path="/{document_id}", response_model=DocumentResponse)
-async def get_document(document_id: int, service: DocumentServiceDep, current_user: CurrentUserDep) -> DocumentResponse:
+async def get_document(
+    document_id: int,
+    service: Annotated[DocumentQueryService, Depends(get_document_query_service)],
+    current_user: CurrentUserDep,
+) -> DocumentResponse:
     """Endpoint to retrieve a document by its ID."""
     doc: DocumentResponse | None = await service.get_document(id=document_id, organization_id=current_user.organization_id)
     if not doc:
@@ -79,7 +85,11 @@ async def get_document(document_id: int, service: DocumentServiceDep, current_us
 
 
 @router.get(path="/{document_id}/file-url", response_model=DocumentFileUrlResponse)
-async def get_document_file_url(document_id: int, service: DocumentServiceDep, current_user: CurrentUserDep) -> DocumentFileUrlResponse:
+async def get_document_file_url(
+    document_id: int,
+    service: Annotated[DocumentCommandService, Depends(get_document_command_service)],
+    current_user: CurrentUserDep,
+) -> DocumentFileUrlResponse:
     """Endpoint to generate a signed URL for a stored document file."""
     url = await service.get_document_signed_url(id=document_id, organization_id=current_user.organization_id)
     return DocumentFileUrlResponse(url=url)
@@ -88,7 +98,7 @@ async def get_document_file_url(document_id: int, service: DocumentServiceDep, c
 @router.patch(path="/{document_id}", response_model=DocumentResponse)
 async def update_document(
     document_id: int,
-    service: DocumentServiceDep,
+    service: Annotated[DocumentCommandService, Depends(get_document_command_service)],
     current_user: CurrentUserDep,
     document: str = Form(...),
     file: UploadFile | None = None,
@@ -117,6 +127,10 @@ async def update_document(
 
 
 @router.delete(path="/{document_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
-async def delete_document(document_id: int, service: DocumentServiceDep, current_user: CurrentUserDep) -> None:
+async def delete_document(
+    document_id: int,
+    service: Annotated[DocumentCommandService, Depends(get_document_command_service)],
+    current_user: CurrentUserDep,
+) -> None:
     """Endpoint to delete a document by its ID."""
     await service.delete_document(id=document_id, organization_id=current_user.organization_id)

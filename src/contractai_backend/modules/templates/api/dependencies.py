@@ -6,8 +6,8 @@ from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from ....shared.infrastructure.database import get_session
-from ...documents.api.dependencies import get_document_service
-from ...documents.application.services import DocumentService
+from ...documents.api.dependencies import get_document_command_service
+from ...documents.application.services import DocumentCommandService
 from ...organizations.api.dependencies import get_organization_service
 from ...organizations.application.services.organization_service import OrganizationService
 from ..application.repositories import IDocumentGenerator, IDocumentModuleAdapter, IOrganizationRepository, ITemplateRenderer, ITemplateRepository
@@ -15,7 +15,7 @@ from ..application.services.template_service import TemplateService
 from ..infrastructure import DocumentModuleAdapter, JinjaRenderer, OrganizationModuleAdapter, SQLModelTemplateRepository, WeasyPrintGenerator
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
-DocumentServiceDep = Annotated[DocumentService, Depends(get_document_service)]
+DocumentServiceDep = Annotated[DocumentCommandService, Depends(get_document_command_service)]
 OrganizationDep = Annotated[OrganizationService, Depends(get_organization_service)]
 
 

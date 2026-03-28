@@ -1,4 +1,4 @@
-"""Tests unitarios para DocumentService con mocks de repositorios."""
+"""Tests unitarios para DocumentCommandService y servicios auxiliares."""
 
 from datetime import date
 from unittest.mock import AsyncMock
@@ -6,8 +6,11 @@ from unittest.mock import AsyncMock
 import pytest
 
 from contractai_backend.modules.documents.api.schemas import CreateDocumentRequest, DocumentServiceItemRequest, FileRequest, UpdateDocumentRequest
-from contractai_backend.modules.documents.application.services.document_service import DocumentService
-from contractai_backend.modules.documents.domain.entities import DocumentTable, ServiceTable
+from contractai_backend.modules.documents.infrastructure.chunk_metadata_enricher import VectorChunkMetadataEnricher
+from contractai_backend.modules.documents.application.services.document_query_service import DocumentQueryService
+from contractai_backend.modules.documents.application.services.document_command_service import DocumentCommandService
+from contractai_backend.modules.documents.application.services.service_catalog_service import ServiceCatalogService
+from contractai_backend.modules.documents.domain import DocumentTable, ServiceTable
 from contractai_backend.modules.documents.domain.exceptions import (
     DocumentExtractionError,
     DocumentFileMissingError,
@@ -39,13 +42,25 @@ def _make_service(
     vector_repo=None,
     extractor=None,
     storage_repo=None,
-) -> DocumentService:
-    return DocumentService(
-        sql_repo=sql_repo or AsyncMock(),
+) -> DocumentCommandService:
+    relational_repo = sql_repo or AsyncMock()
+    return DocumentCommandService(
+        command_repo=relational_repo,
+        query_repo=relational_repo,
+        service_repo=relational_repo,
         vector_repo=vector_repo or AsyncMock(),
         extractor=extractor or AsyncMock(),
         storage_repo=storage_repo or AsyncMock(),
+        chunk_enricher=VectorChunkMetadataEnricher(),
     )
+
+
+def _make_query_service(sql_repo=None) -> DocumentQueryService:
+    return DocumentQueryService(sql_repo=sql_repo or AsyncMock())
+
+
+def _make_catalog_service(sql_repo=None) -> ServiceCatalogService:
+    return ServiceCatalogService(sql_repo=sql_repo or AsyncMock())
 
 
 def _create_request(service_items: list[DocumentServiceItemRequest] | None = None) -> CreateDocumentRequest:
@@ -74,6 +89,7 @@ class TestCreateDocument:
         sql_repo.save.return_value = saved
         sql_repo.update.return_value = updated
         sql_repo.replace_document_services.return_value = []
+        sql_repo.get_document_services.return_value = []
 
         vector_repo = AsyncMock()
         extractor = AsyncMock()
@@ -85,7 +101,8 @@ class TestCreateDocument:
         service = _make_service(sql_repo, vector_repo, extractor, storage_repo)
         result = await service.create_document(_create_request(), _file_request(), organization_id=1)
 
-        assert result == updated
+        assert result.id == updated.id
+        assert result.file_path == updated.file_path
         sql_repo.save.assert_called_once()
         sql_repo.replace_document_services.assert_called_once()
         storage_repo.upload_file.assert_called_once()
@@ -176,6 +193,7 @@ class TestCreateDocument:
         sql_repo.update.return_value = updated
         sql_repo.replace_document_services.return_value = []
         sql_repo.get_services_by_ids.return_value = [ServiceTable(id=2, organization_id=1, name="Hosting")]
+        sql_repo.get_document_services.return_value = []
 
         extractor = AsyncMock()
         extractor.extract.return_value = ["chunk1"]
@@ -260,30 +278,34 @@ class TestGetDocuments:
         docs = [_make_doc(1), _make_doc(2)]
         sql_repo = AsyncMock()
         sql_repo.get_all.return_value = docs
+        sql_repo.get_document_services_by_document_ids.return_value = {1: [], 2: []}
 
-        service = _make_service(sql_repo=sql_repo)
+        service = _make_query_service(sql_repo=sql_repo)
         result = await service.get_documents(organization_id=1)
 
-        assert result == docs
+        assert [document.id for document in result] == [1, 2]
         sql_repo.get_all.assert_called_once_with(filters={"organization_id": 1})
+        sql_repo.get_document_services_by_document_ids.assert_called_once_with(document_ids=[1, 2])
 
     @pytest.mark.asyncio
     async def test_get_document_returns_doc_for_same_org(self):
         doc = _make_doc()
         sql_repo = AsyncMock()
         sql_repo.get_by_id.return_value = doc
+        sql_repo.get_document_services.return_value = []
 
-        service = _make_service(sql_repo=sql_repo)
+        service = _make_query_service(sql_repo=sql_repo)
         result = await service.get_document(1, organization_id=1)
 
-        assert result == doc
+        assert result is not None
+        assert result.id == doc.id
 
     @pytest.mark.asyncio
     async def test_get_document_other_org_returns_none(self):
         sql_repo = AsyncMock()
         sql_repo.get_by_id.return_value = _make_doc(organization_id=2)
 
-        service = _make_service(sql_repo=sql_repo)
+        service = _make_query_service(sql_repo=sql_repo)
         result = await service.get_document(1, organization_id=1)
 
         assert result is None
@@ -294,7 +316,7 @@ class TestGetDocuments:
         sql_repo = AsyncMock()
         sql_repo.get_services.return_value = services
 
-        service = _make_service(sql_repo=sql_repo)
+        service = _make_catalog_service(sql_repo=sql_repo)
         result = await service.list_services(organization_id=1)
 
         assert result == services
@@ -338,6 +360,7 @@ class TestUpdateDocument:
         sql_repo = AsyncMock()
         sql_repo.get_by_id.return_value = doc
         sql_repo.update.return_value = updated
+        sql_repo.get_document_services.return_value = []
 
         service = _make_service(sql_repo=sql_repo)
         result = await service.update_document(1, UpdateDocumentRequest(name="Nuevo Nombre"), organization_id=1)
@@ -354,6 +377,7 @@ class TestUpdateDocument:
         sql_repo.get_by_id.return_value = doc
         sql_repo.update.return_value = updated
         sql_repo.get_services_by_ids.return_value = [ServiceTable(id=3, organization_id=1, name="Mesa de ayuda")]
+        sql_repo.get_document_services.return_value = []
 
         service = _make_service(sql_repo=sql_repo)
         request = UpdateDocumentRequest(
@@ -381,6 +405,7 @@ class TestUpdateDocument:
         sql_repo.get_by_id.return_value = doc
         sql_repo.update.return_value = updated
         sql_repo.get_services_by_ids.return_value = [ServiceTable(id=3, organization_id=1, name="Mesa de ayuda")]
+        sql_repo.get_document_services.return_value = []
 
         service = _make_service(sql_repo=sql_repo)
         request = UpdateDocumentRequest(
@@ -418,6 +443,7 @@ class TestUpdateDocument:
         sql_repo = AsyncMock()
         sql_repo.get_by_id.return_value = doc
         sql_repo.update.return_value = updated
+        sql_repo.get_document_services.return_value = []
 
         extractor = AsyncMock()
         extractor.extract.return_value = ["chunk"]
