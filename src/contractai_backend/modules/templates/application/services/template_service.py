@@ -62,6 +62,7 @@ class TemplateService:
             "organization_id": organization_id,
             "template_id": template_id,
             "name": f"{template.name} - {cliente_nombre}",
+            "client": cliente_nombre,
             "type": "SERVICES",
             "content": pdf_bytes,
             "start_date": form_data.get("contrato_fecha_inicio", now.date().isoformat()),

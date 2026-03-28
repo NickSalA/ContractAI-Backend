@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.12.0 (2026-03-28)
+
+### Features
+
+- **templates**: Add client contract template
+  ([`946c5b3`](https://github.com/NickSalA/ContractAI-Backend/commit/946c5b3aee2016131e67c93f757641576025723c))
+
+### Refactoring
+
+- Refactor document services and enhance validation
+  ([`26a9285`](https://github.com/NickSalA/ContractAI-Backend/commit/26a9285940061252e376825cc9f595bf07ebe4cb))
+
+
 ## v0.11.1 (2026-03-27)
 
 
