@@ -16,7 +16,8 @@ def build_bc_tool(repo: VectorRepository):
         description=(
             "Usala obligatoriamente para buscar informacion en contratos corporativos, "
             "anexos, acuerdos comerciales, SLAs y documentos legales. Devuelve fragmentos "
-            "relevantes de la base de conocimientos contractual de la empresa."
+            "relevantes de la base de conocimientos contractual de la empresa. Tambien sirve "
+            "para extraer datos textuales como firmantes, representantes, apoderados, clausulas y obligaciones."
         ),
     )
     async def bc_tool(query: str, limit: int = 5) -> str:
@@ -31,8 +32,9 @@ def build_contracts_query_tool(service: ContractQueryService, organization_id: i
     @tool(
         name_or_callable="contracts_query_tool",
         description=(
-            "Usala para contar, listar o filtrar contratos por cliente, nombre, valor total, moneda, estado, tipo "
-            "y rangos de fechas. Si el usuario pide montos sin moneda, esta herramienta indicara que se debe pedir aclaracion."
+            "Usala para contar, listar o filtrar contratos como registros por cliente, nombre, valor total, moneda, "
+            "estado, tipo y rangos de fechas. No es para extraer nombres de firmantes u otros datos textuales internos del contrato. "
+            "Si el usuario pide montos sin moneda, esta herramienta indicara que se debe pedir aclaracion."
         ),
     )
     async def contracts_query_tool(  # noqa: PLR0913
