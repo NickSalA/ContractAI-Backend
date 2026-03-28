@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.13.2 (2026-03-28)
+
+### Bug Fixes
+
+- Change prompt rules for better responses
+  ([`77e30a9`](https://github.com/NickSalA/ContractAI-Backend/commit/77e30a9665a03fdb32a5989faa0af1757d2b90f2))
+
+
 ## v0.13.1 (2026-03-28)
 
 
