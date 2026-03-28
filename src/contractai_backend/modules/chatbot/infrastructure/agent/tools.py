@@ -1,8 +1,11 @@
 """Tools personalizados para el agente de chatbot, integrando la búsqueda en la base de conocimientos contractual."""
 
+import json
+
 from langchain_core.tools import tool
 
 from ...application.repositories import VectorRepository
+from ....documents.application.services import ContractQueryService
 
 
 def build_bc_tool(repo: VectorRepository):
@@ -11,12 +14,56 @@ def build_bc_tool(repo: VectorRepository):
     @tool(
         name_or_callable="bc_tool",
         description=(
-                "Usala obligatoriamente para buscar informacion en contratos corporativos, "
-                "anexos, acuerdos comerciales, SLAs y documentos legales. Devuelve fragmentos "
-                "relevantes de la base de conocimientos contractual de la empresa."
+            "Usala obligatoriamente para buscar informacion en contratos corporativos, "
+            "anexos, acuerdos comerciales, SLAs y documentos legales. Devuelve fragmentos "
+            "relevantes de la base de conocimientos contractual de la empresa."
         ),
     )
     async def bc_tool(query: str, limit: int = 5) -> str:
         return await repo.search_documents(query=query, limit=limit)
 
     return bc_tool
+
+
+def build_contracts_query_tool(service: ContractQueryService, organization_id: int):
+    """Construye una herramienta para consultas estructuradas de contratos."""
+
+    @tool(
+        name_or_callable="contracts_query_tool",
+        description=(
+            "Usala para contar, listar o filtrar contratos por cliente, nombre, valor total, moneda, estado, tipo "
+            "y rangos de fechas. Si el usuario pide montos sin moneda, esta herramienta indicara que se debe pedir aclaracion."
+        ),
+    )
+    async def contracts_query_tool(  # noqa: PLR0913
+        operation: str,
+        client: str | None = None,
+        contract_name: str | None = None,
+        min_value: float | None = None,
+        max_value: float | None = None,
+        currency: str | None = None,
+        state: str | None = None,
+        document_type: str | None = None,
+        period_start: str | None = None,
+        period_end: str | None = None,
+        date_mode: str = "overlap",
+        limit: int = 20,
+    ) -> str:
+        result = await service.run_query(
+            organization_id=organization_id,
+            operation=operation,
+            client=client,
+            contract_name=contract_name,
+            min_value=min_value,
+            max_value=max_value,
+            currency=currency,
+            state=state,
+            document_type=document_type,
+            period_start=period_start,
+            period_end=period_end,
+            date_mode=date_mode,
+            limit=limit,
+        )
+        return json.dumps(result, ensure_ascii=True)
+
+    return contracts_query_tool

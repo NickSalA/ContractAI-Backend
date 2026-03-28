@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from datetime import date
 from typing import Any
 
 from ...domain import DocumentServiceTable, DocumentTable, ServiceTable
@@ -26,6 +27,43 @@ class DocumentQueryRepository(ABC):
     @abstractmethod
     async def get_document_services_by_document_ids(self, document_ids: Sequence[int]) -> dict[int, Sequence[DocumentServiceTable]]:
         """Lists service items grouped by document id."""
+        pass
+
+    @abstractmethod
+    async def search_contracts(
+        self,
+        organization_id: int,
+        client: str | None = None,
+        contract_name: str | None = None,
+        min_value: float | None = None,
+        max_value: float | None = None,
+        currency: str | None = None,
+        state: str | None = None,
+        document_type: str | None = None,
+        period_start: date | None = None,
+        period_end: date | None = None,
+        date_mode: str = "overlap",
+        limit: int | None = None,
+    ) -> Sequence[DocumentTable]:
+        """Lists contracts matching structured filters."""
+        pass
+
+    @abstractmethod
+    async def count_contracts(
+        self,
+        organization_id: int,
+        client: str | None = None,
+        contract_name: str | None = None,
+        min_value: float | None = None,
+        max_value: float | None = None,
+        currency: str | None = None,
+        state: str | None = None,
+        document_type: str | None = None,
+        period_start: date | None = None,
+        period_end: date | None = None,
+        date_mode: str = "overlap",
+    ) -> int:
+        """Counts contracts matching structured filters."""
         pass
 
 

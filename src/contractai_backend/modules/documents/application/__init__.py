@@ -6,9 +6,10 @@ from .repositories import (
     ServiceCatalogRepository,
     VectorRepository,
 )
-from .services import DocumentCommandService, DocumentQueryService, ServiceCatalogService
+from .services import ContractQueryService, DocumentCommandService, DocumentQueryService, ServiceCatalogService
 
 __all__ = [
+    "ContractQueryService",
     "DocumentChunkEnricher",
     "DocumentCommandRepository",
     "DocumentCommandService",

@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
+from .....modules.users.domain.entities import UserTable
 from .....shared.api.dependencies.security import get_current_user
 from ...api.dependencies import get_chatbot_service
 from ...api.schemas import ChatRequest, ChatResponse
@@ -12,7 +13,7 @@ from ...application.services import ChatbotService
 router = APIRouter()
 
 ChatbotServiceDep = Annotated[ChatbotService, Depends(get_chatbot_service)]
-CurrentUserDep = Annotated[dict, Depends(get_current_user)]
+CurrentUserDep = Annotated[UserTable, Depends(get_current_user)]
 
 
 @router.post("/", response_model=ChatResponse)

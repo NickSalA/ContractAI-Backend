@@ -7,6 +7,7 @@ import pytest
 
 from contractai_backend.modules.documents.api.schemas import CreateDocumentRequest, DocumentServiceItemRequest, FileRequest, UpdateDocumentRequest
 from contractai_backend.modules.documents.infrastructure.chunk_metadata_enricher import VectorChunkMetadataEnricher
+from contractai_backend.modules.documents.application.services.contract_query_service import ContractQueryService
 from contractai_backend.modules.documents.application.services.document_query_service import DocumentQueryService
 from contractai_backend.modules.documents.application.services.document_command_service import DocumentCommandService
 from contractai_backend.modules.documents.application.services.service_catalog_service import ServiceCatalogService
@@ -61,6 +62,10 @@ def _make_query_service(sql_repo=None) -> DocumentQueryService:
 
 def _make_catalog_service(sql_repo=None) -> ServiceCatalogService:
     return ServiceCatalogService(sql_repo=sql_repo or AsyncMock())
+
+
+def _make_contract_query_service(sql_repo=None) -> ContractQueryService:
+    return ContractQueryService(sql_repo=sql_repo or AsyncMock())
 
 
 def _create_request(service_items: list[DocumentServiceItemRequest] | None = None) -> CreateDocumentRequest:
@@ -348,6 +353,89 @@ class TestDeleteDocument:
         service = _make_service(sql_repo=sql_repo)
         with pytest.raises(DocumentNotFoundError):
             await service.delete_document(99, organization_id=1)
+
+
+class TestContractQueryService:
+    @pytest.mark.asyncio
+    async def test_requires_currency_for_value_filters(self):
+        sql_repo = AsyncMock()
+        service = _make_contract_query_service(sql_repo=sql_repo)
+
+        result = await service.run_query(organization_id=1, operation="count", max_value=50000)
+
+        assert result["status"] == "needs_clarification"
+        sql_repo.count_contracts.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_returns_no_data_when_org_has_no_contracts(self):
+        sql_repo = AsyncMock()
+        sql_repo.count_contracts.return_value = 0
+        service = _make_contract_query_service(sql_repo=sql_repo)
+
+        result = await service.run_query(organization_id=1, operation="count")
+
+        assert result == {"status": "no_data", "message": "No hay contratos cargados para la organizacion actual."}
+
+    @pytest.mark.asyncio
+    async def test_counts_contracts_with_overlap_range(self):
+        sql_repo = AsyncMock()
+        sql_repo.count_contracts.side_effect = [4, 2]
+        service = _make_contract_query_service(sql_repo=sql_repo)
+
+        result = await service.run_query(
+            organization_id=1,
+            operation="count",
+            max_value=50000,
+            currency="usd",
+            period_start="2024-01-01",
+            period_end="2024-03-31",
+        )
+
+        assert result["status"] == "success"
+        assert result["count"] == 2
+        assert result["filters_applied"]["currency"] == "USD"
+        sql_repo.count_contracts.assert_any_call(organization_id=1)
+        sql_repo.count_contracts.assert_any_call(
+            organization_id=1,
+            client=None,
+            contract_name=None,
+            min_value=None,
+            max_value=50000,
+            currency="USD",
+            state=None,
+            document_type=None,
+            period_start=date(2024, 1, 1),
+            period_end=date(2024, 3, 31),
+            date_mode="overlap",
+        )
+
+    @pytest.mark.asyncio
+    async def test_lists_serialized_contracts(self):
+        sql_repo = AsyncMock()
+        sql_repo.count_contracts.side_effect = [3, 1]
+        sql_repo.search_contracts.return_value = [_make_doc()]
+        service = _make_contract_query_service(sql_repo=sql_repo)
+
+        result = await service.run_query(organization_id=1, operation="list", client="Cliente", limit=5)
+
+        assert result["status"] == "success"
+        assert result["items"][0]["name"] == "Contrato Test"
+        assert result["items"][0]["value"] == 500.0
+        assert result["returned_items"] == 1
+        sql_repo.search_contracts.assert_called_once_with(
+            organization_id=1,
+            client="Cliente",
+            contract_name=None,
+            min_value=None,
+            max_value=None,
+            currency=None,
+            state=None,
+            document_type=None,
+            period_start=None,
+            period_end=None,
+            date_mode="overlap",
+            limit=5,
+        )
 
 
 class TestUpdateDocument:

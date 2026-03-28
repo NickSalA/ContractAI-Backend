@@ -14,7 +14,7 @@ from .domain import (
     VectorSearchError,
 )
 from .infrastructure import ConversationRepository, QdrantVectorRepository
-from .infrastructure.agent import ContractAgentGraph, LangGraphGeminiAdapter, build_bc_tool, get_llm, init_checkpointer
+from .infrastructure.agent import ContractAgentGraph, LangGraphGeminiAdapter, build_bc_tool, build_contracts_query_tool, get_llm, init_checkpointer
 
 __all__ = [
     "ChatbotDatabaseUnavailableError",
@@ -38,6 +38,7 @@ __all__ = [
     "VectorRepository",
     "VectorSearchError",
     "build_bc_tool",
+    "build_contracts_query_tool",
     "chat_router",
     "conversation_router",
     "get_llm",
